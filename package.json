@@ -1,6 +1,6 @@
 {
   "name": "vue-xpl-tree",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Encapsulation ztree for vue",
   "main": "./dist/vue-xpl-tree.common.js",
   "scripts": {
@@ -40,6 +40,9 @@
     "babel-eslint": "^10.0.3",
     "eslint": "^6.3.0",
     "eslint-plugin-vue": "^5.2.2",
+    "node-sass": "^5.0.0",
+    "sass": "^1.32.8",
+    "sass-loader": "^9.0.0",
     "vue": "^2.6.10",
     "vue-template-compiler": "^2.6.10"
   }

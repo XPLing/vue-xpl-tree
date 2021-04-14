@@ -138,8 +138,6 @@ export default {
     },
     handleCreated: function(ztreeObj) {
       this.ztreeObj = ztreeObj;
-      console.log(this.ztreeObj);
-      console.log(this.ztreeObj.fuzzySearch);
       // onCreated 中操作ztreeObj对象展开第一个节点
       ztreeObj.expandNode(ztreeObj.getNodes()[0], true);
     },

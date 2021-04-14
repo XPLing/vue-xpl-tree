@@ -109,7 +109,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* beauty ztree! */
-@import "ztree.css";
+@import "ztree.scss";
 </style>
