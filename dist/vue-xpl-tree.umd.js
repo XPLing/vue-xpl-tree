@@ -11380,10 +11380,14 @@ __webpack_require__("7a56")('RegExp');
 
 /***/ }),
 
-/***/ "3f9f":
-/***/ (function(module, exports, __webpack_require__) {
+/***/ "3be9":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
-// extracted by mini-css-extract-plugin
+"use strict";
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("c3bd");
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
+/* unused harmony reexport * */
+
 
 /***/ }),
 
@@ -12047,17 +12051,6 @@ var cof = __webpack_require__("2d95");
 module.exports = Object('z').propertyIsEnumerable(0) ? Object : function (it) {
   return cof(it) == 'String' ? it.split('') : Object(it);
 };
-
-
-/***/ }),
-
-/***/ "6303":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_0057436e_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("3f9f");
-/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_0057436e_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_0057436e_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
-/* unused harmony reexport * */
 
 
 /***/ }),
@@ -13864,7 +13857,7 @@ exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
           fontStyle.push(f, ":", fontcss[f], ";");
         }
         html.push("<a id='", node.tId, consts.id.A, "' class='", consts.className.LEVEL, node.level,
-          nodeClasses.add ? ' ' + nodeClasses.add.join(' ') : '', 
+          nodeClasses.add ? ' ' + nodeClasses.add.join(' ') : '',
           "' treeNode", consts.id.A,
           node.click ? " onclick=\"" + node.click + "\"" : "",
           ((url != null && url.length > 0) ? " href='" + url + "'" : ""), " target='", view.makeNodeTarget(node), "' style='", fontStyle.join(''),
@@ -16396,6 +16389,7 @@ exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
   }
 })(jQuery);
 
+
 /***/ }),
 
 /***/ "9b43":
@@ -16649,6 +16643,13 @@ module.exports = function (IS_INCLUDES) {
 
 /***/ }),
 
+/***/ "c3bd":
+/***/ (function(module, exports, __webpack_require__) {
+
+// extracted by mini-css-extract-plugin
+
+/***/ }),
+
 /***/ "c69a":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16825,12 +16826,12 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"ace52fde-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/ztree.vue?vue&type=template&id=0057436e&scoped=true&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"b03974c0-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/ztree.vue?vue&type=template&id=4e249ba6&scoped=true&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"ztree",attrs:{"id":_vm.ztreeId}})}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/ztree.vue?vue&type=template&id=0057436e&scoped=true&
+// CONCATENATED MODULE: ./src/components/ztree.vue?vue&type=template&id=4e249ba6&scoped=true&
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es6.object.assign.js
 var es6_object_assign = __webpack_require__("f751");
@@ -16886,107 +16887,212 @@ __webpack_require__("8f98");
 
         },
         callback: {
-          onAsyncError: function onAsyncError() {
+          beforeAsync: function beforeAsync() {
             for (var _len = arguments.length, arg = new Array(_len), _key = 0; _key < _len; _key++) {
               arg[_key] = arguments[_key];
+            }
+
+            _this.$emit.apply(_this, ['beforeAsync'].concat(arg));
+          },
+          beforeCheck: function beforeCheck() {
+            for (var _len2 = arguments.length, arg = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+              arg[_key2] = arguments[_key2];
+            }
+
+            _this.$emit.apply(_this, ['beforeCheck'].concat(arg));
+          },
+          beforeClick: function beforeClick() {
+            for (var _len3 = arguments.length, arg = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+              arg[_key3] = arguments[_key3];
+            }
+
+            _this.$emit.apply(_this, ['beforeClick'].concat(arg));
+          },
+          beforeCollapse: function beforeCollapse() {
+            for (var _len4 = arguments.length, arg = new Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+              arg[_key4] = arguments[_key4];
+            }
+
+            _this.$emit.apply(_this, ['beforeCollapse'].concat(arg));
+          },
+          beforeDblClick: function beforeDblClick() {
+            for (var _len5 = arguments.length, arg = new Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+              arg[_key5] = arguments[_key5];
+            }
+
+            _this.$emit.apply(_this, ['beforeDblClick'].concat(arg));
+          },
+          beforeDrag: function beforeDrag() {
+            for (var _len6 = arguments.length, arg = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
+              arg[_key6] = arguments[_key6];
+            }
+
+            _this.$emit.apply(_this, ['beforeDrag'].concat(arg));
+          },
+          beforeDragOpen: function beforeDragOpen() {
+            for (var _len7 = arguments.length, arg = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+              arg[_key7] = arguments[_key7];
+            }
+
+            _this.$emit.apply(_this, ['beforeDragOpen'].concat(arg));
+          },
+          beforeDrop: function beforeDrop() {
+            for (var _len8 = arguments.length, arg = new Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
+              arg[_key8] = arguments[_key8];
+            }
+
+            _this.$emit.apply(_this, ['beforeDrop'].concat(arg));
+          },
+          beforeEditName: function beforeEditName() {
+            for (var _len9 = arguments.length, arg = new Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
+              arg[_key9] = arguments[_key9];
+            }
+
+            _this.$emit.apply(_this, ['beforeEditName'].concat(arg));
+          },
+          beforeExpand: function beforeExpand() {
+            for (var _len10 = arguments.length, arg = new Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
+              arg[_key10] = arguments[_key10];
+            }
+
+            _this.$emit.apply(_this, ['beforeExpand'].concat(arg));
+          },
+          beforeMouseDown: function beforeMouseDown() {
+            for (var _len11 = arguments.length, arg = new Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
+              arg[_key11] = arguments[_key11];
+            }
+
+            _this.$emit.apply(_this, ['beforeMouseDown'].concat(arg));
+          },
+          beforeMouseUp: function beforeMouseUp() {
+            for (var _len12 = arguments.length, arg = new Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
+              arg[_key12] = arguments[_key12];
+            }
+
+            _this.$emit.apply(_this, ['beforeMouseUp'].concat(arg));
+          },
+          beforeRemove: function beforeRemove() {
+            for (var _len13 = arguments.length, arg = new Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
+              arg[_key13] = arguments[_key13];
+            }
+
+            _this.$emit.apply(_this, ['beforeRemove'].concat(arg));
+          },
+          beforeRename: function beforeRename() {
+            for (var _len14 = arguments.length, arg = new Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
+              arg[_key14] = arguments[_key14];
+            }
+
+            _this.$emit.apply(_this, ['beforeRename'].concat(arg));
+          },
+          beforeRightClick: function beforeRightClick() {
+            for (var _len15 = arguments.length, arg = new Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
+              arg[_key15] = arguments[_key15];
+            }
+
+            _this.$emit.apply(_this, ['beforeRightClick'].concat(arg));
+          },
+          onAsyncError: function onAsyncError() {
+            for (var _len16 = arguments.length, arg = new Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
+              arg[_key16] = arguments[_key16];
             }
 
             _this.$emit.apply(_this, ['onAsyncError'].concat(arg));
           },
           onAsyncSuccess: function onAsyncSuccess() {
-            for (var _len2 = arguments.length, arg = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-              arg[_key2] = arguments[_key2];
+            for (var _len17 = arguments.length, arg = new Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
+              arg[_key17] = arguments[_key17];
             }
 
             _this.$emit.apply(_this, ['onAsyncSuccess'].concat(arg));
           },
           onCheck: function onCheck() {
-            for (var _len3 = arguments.length, arg = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-              arg[_key3] = arguments[_key3];
+            for (var _len18 = arguments.length, arg = new Array(_len18), _key18 = 0; _key18 < _len18; _key18++) {
+              arg[_key18] = arguments[_key18];
             }
 
             _this.$emit.apply(_this, ['onCheck'].concat(arg));
           },
           onClick: function onClick() {
-            for (var _len4 = arguments.length, arg = new Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
-              arg[_key4] = arguments[_key4];
+            for (var _len19 = arguments.length, arg = new Array(_len19), _key19 = 0; _key19 < _len19; _key19++) {
+              arg[_key19] = arguments[_key19];
             }
 
             _this.$emit.apply(_this, ['onClick'].concat(arg));
           },
           onCollapse: function onCollapse() {
-            for (var _len5 = arguments.length, arg = new Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-              arg[_key5] = arguments[_key5];
+            for (var _len20 = arguments.length, arg = new Array(_len20), _key20 = 0; _key20 < _len20; _key20++) {
+              arg[_key20] = arguments[_key20];
             }
 
             _this.$emit.apply(_this, ['onCollapse'].concat(arg));
           },
           onDblClick: function onDblClick() {
-            for (var _len6 = arguments.length, arg = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-              arg[_key6] = arguments[_key6];
+            for (var _len21 = arguments.length, arg = new Array(_len21), _key21 = 0; _key21 < _len21; _key21++) {
+              arg[_key21] = arguments[_key21];
             }
 
             _this.$emit.apply(_this, ['onDblClick'].concat(arg));
           },
           onDrag: function onDrag() {
-            for (var _len7 = arguments.length, arg = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-              arg[_key7] = arguments[_key7];
+            for (var _len22 = arguments.length, arg = new Array(_len22), _key22 = 0; _key22 < _len22; _key22++) {
+              arg[_key22] = arguments[_key22];
             }
 
             _this.$emit.apply(_this, ['onDrag'].concat(arg));
           },
           onDragMove: function onDragMove() {
-            for (var _len8 = arguments.length, arg = new Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-              arg[_key8] = arguments[_key8];
+            for (var _len23 = arguments.length, arg = new Array(_len23), _key23 = 0; _key23 < _len23; _key23++) {
+              arg[_key23] = arguments[_key23];
             }
 
             _this.$emit.apply(_this, ['onDragMove'].concat(arg));
           },
           onDrop: function onDrop() {
-            for (var _len9 = arguments.length, arg = new Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-              arg[_key9] = arguments[_key9];
+            for (var _len24 = arguments.length, arg = new Array(_len24), _key24 = 0; _key24 < _len24; _key24++) {
+              arg[_key24] = arguments[_key24];
             }
 
             _this.$emit.apply(_this, ['onDrop'].concat(arg));
           },
           onExpand: function onExpand() {
-            for (var _len10 = arguments.length, arg = new Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
-              arg[_key10] = arguments[_key10];
+            for (var _len25 = arguments.length, arg = new Array(_len25), _key25 = 0; _key25 < _len25; _key25++) {
+              arg[_key25] = arguments[_key25];
             }
 
             _this.$emit.apply(_this, ['onExpand'].concat(arg));
           },
           onMouseDown: function onMouseDown() {
-            for (var _len11 = arguments.length, arg = new Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
-              arg[_key11] = arguments[_key11];
+            for (var _len26 = arguments.length, arg = new Array(_len26), _key26 = 0; _key26 < _len26; _key26++) {
+              arg[_key26] = arguments[_key26];
             }
 
             _this.$emit.apply(_this, ['onMouseDown'].concat(arg));
           },
           onMouseUp: function onMouseUp() {
-            for (var _len12 = arguments.length, arg = new Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
-              arg[_key12] = arguments[_key12];
+            for (var _len27 = arguments.length, arg = new Array(_len27), _key27 = 0; _key27 < _len27; _key27++) {
+              arg[_key27] = arguments[_key27];
             }
 
             _this.$emit.apply(_this, ['onMouseUp'].concat(arg));
           },
           onRemove: function onRemove() {
-            for (var _len13 = arguments.length, arg = new Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
-              arg[_key13] = arguments[_key13];
+            for (var _len28 = arguments.length, arg = new Array(_len28), _key28 = 0; _key28 < _len28; _key28++) {
+              arg[_key28] = arguments[_key28];
             }
 
             _this.$emit.apply(_this, ['onRemove'].concat(arg));
           },
           onRename: function onRename() {
-            for (var _len14 = arguments.length, arg = new Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
-              arg[_key14] = arguments[_key14];
+            for (var _len29 = arguments.length, arg = new Array(_len29), _key29 = 0; _key29 < _len29; _key29++) {
+              arg[_key29] = arguments[_key29];
             }
 
             _this.$emit.apply(_this, ['onRename'].concat(arg));
           },
           onRightClick: function onRightClick() {
-            for (var _len15 = arguments.length, arg = new Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
-              arg[_key15] = arguments[_key15];
+            for (var _len30 = arguments.length, arg = new Array(_len30), _key30 = 0; _key30 < _len30; _key30++) {
+              arg[_key30] = arguments[_key30];
             }
 
             _this.$emit.apply(_this, ['onRightClick'].concat(arg));
@@ -16995,32 +17101,51 @@ __webpack_require__("8f98");
       }
     };
   },
-  watch: {
-    nodes: {
-      handler: function handler(nodes) {
-        var _this2 = this;
+  methods: {
+    updateTree: function updateTree() {
+      var isUpdate = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
 
-        this.list = nodes; // update tree
+      if (isUpdate) {
+        this.init();
+      }
+    },
+    init: function init() {
+      var _this2 = this;
 
-        if (this.ztreeObj) {
-          this.ztreeObj.destroy();
-        }
+      this.list = this.nodes; // update tree
 
-        this.$nextTick(function () {
-          _this2.ztreeObj = jquery["fn"].zTree.init(jquery('#' + _this2.ztreeId), Object.assign({}, _this2.ztreeSetting, _this2.setting), _this2.list);
+      if (this.ztreeObj) {
+        this.ztreeObj.destroy();
+      }
 
-          _this2.$emit('onCreated', _this2.ztreeObj);
-        });
-      },
-      deep: true,
-      immediate: true
+      this.$nextTick(function () {
+        _this2.ztreeObj = jquery["fn"].zTree.init(jquery('#' + _this2.ztreeId), Object.assign({}, _this2.ztreeSetting, _this2.setting), _this2.list);
+
+        _this2.$emit('onCreated', _this2.ztreeObj);
+      });
     }
+  },
+  watch: {// nodes: {
+    //   handler: function (nodes) {
+    //     this.list = nodes
+    //     // update tree
+    //     if (this.ztreeObj) {
+    //       this.ztreeObj.destroy()
+    //     }
+    //     this.$nextTick(() => {
+    //       this.ztreeObj = $.fn.zTree.init($('#' + this.ztreeId), Object.assign({}, this.ztreeSetting, this.setting), this.list)
+    //       this.$emit('onCreated', this.ztreeObj)
+    //     })
+    //   },
+    //   deep: true,
+    //   immediate: true
+    // }
   }
 });
 // CONCATENATED MODULE: ./src/components/ztree.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_ztreevue_type_script_lang_js_ = (ztreevue_type_script_lang_js_); 
-// EXTERNAL MODULE: ./src/components/ztree.vue?vue&type=style&index=0&id=0057436e&scoped=true&lang=scss&
-var ztreevue_type_style_index_0_id_0057436e_scoped_true_lang_scss_ = __webpack_require__("6303");
+// EXTERNAL MODULE: ./src/components/ztree.vue?vue&type=style&index=0&id=4e249ba6&scoped=true&lang=scss&
+var ztreevue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss_ = __webpack_require__("3be9");
 
 // CONCATENATED MODULE: ./node_modules/vue-loader/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -17137,7 +17262,7 @@ var component = normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "0057436e",
+  "4e249ba6",
   null
   
 )

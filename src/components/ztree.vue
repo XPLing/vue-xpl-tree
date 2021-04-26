@@ -39,6 +39,51 @@ export default {
           showIcon: false         // default to hide icon
         },
         callback: {
+          beforeAsync: (...arg) => {
+            this.$emit('beforeAsync', ...arg)
+          },
+          beforeCheck: (...arg) => {
+            this.$emit('beforeCheck', ...arg)
+          },
+          beforeClick: (...arg) => {
+            this.$emit('beforeClick', ...arg)
+          },
+          beforeCollapse: (...arg) => {
+            this.$emit('beforeCollapse', ...arg)
+          },
+          beforeDblClick: (...arg) => {
+            this.$emit('beforeDblClick', ...arg)
+          },
+          beforeDrag: (...arg) => {
+            this.$emit('beforeDrag', ...arg)
+          },
+          beforeDragOpen: (...arg) => {
+            this.$emit('beforeDragOpen', ...arg)
+          },
+          beforeDrop: (...arg) => {
+            this.$emit('beforeDrop', ...arg)
+          },
+          beforeEditName: (...arg) => {
+            this.$emit('beforeEditName', ...arg)
+          },
+          beforeExpand: (...arg) => {
+            this.$emit('beforeExpand', ...arg)
+          },
+          beforeMouseDown: (...arg) => {
+            this.$emit('beforeMouseDown', ...arg)
+          },
+          beforeMouseUp: (...arg) => {
+            this.$emit('beforeMouseUp', ...arg)
+          },
+          beforeRemove: (...arg) => {
+            this.$emit('beforeRemove', ...arg)
+          },
+          beforeRename: (...arg) => {
+            this.$emit('beforeRename', ...arg)
+          },
+          beforeRightClick: (...arg) => {
+            this.$emit('beforeRightClick', ...arg)
+          },
           onAsyncError: (...arg) => {
             this.$emit('onAsyncError', ...arg)
           },
@@ -88,23 +133,40 @@ export default {
       }
     }
   },
-  watch: {
-    nodes: {
-      handler: function (nodes) {
-        this.list = nodes
-
-        // update tree
-        if (this.ztreeObj) {
-          this.ztreeObj.destroy()
-        }
-        this.$nextTick(() => {
-          this.ztreeObj = $.fn.zTree.init($('#' + this.ztreeId), Object.assign({}, this.ztreeSetting, this.setting), this.list)
-          this.$emit('onCreated', this.ztreeObj)
-        })
-      },
-      deep: true,
-      immediate: true
+  methods: {
+    updateTree (isUpdate = true) {
+      if (isUpdate) {
+        this.init()
+      }
+    },
+    init () {
+      this.list = this.nodes
+      // update tree
+      if (this.ztreeObj) {
+        this.ztreeObj.destroy()
+      }
+      this.$nextTick(() => {
+        this.ztreeObj = $.fn.zTree.init($('#' + this.ztreeId), Object.assign({}, this.ztreeSetting, this.setting), this.list)
+        this.$emit('onCreated', this.ztreeObj)
+      })
     }
+  },
+  watch: {
+    // nodes: {
+    //   handler: function (nodes) {
+    //     this.list = nodes
+    //     // update tree
+    //     if (this.ztreeObj) {
+    //       this.ztreeObj.destroy()
+    //     }
+    //     this.$nextTick(() => {
+    //       this.ztreeObj = $.fn.zTree.init($('#' + this.ztreeId), Object.assign({}, this.ztreeSetting, this.setting), this.list)
+    //       this.$emit('onCreated', this.ztreeObj)
+    //     })
+    //   },
+    //   deep: true,
+    //   immediate: true
+    // }
   }
 }
 </script>

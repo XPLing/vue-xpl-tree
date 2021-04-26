@@ -3,21 +3,21 @@
     <h1 class="T">
       Vue-XPL-Tree
       <a
-        href="https://github.com/XPLing/vue-xpl-tree"
-        target="_blank"
-        titie="Vue-XPL-Tree"
+          href="https://github.com/XPLing/vue-xpl-tree"
+          target="_blank"
+          titie="Vue-XPL-Tree"
       >
         <svg
-          class="octicon octicon-mark-github v-align-middle"
-          height="32"
-          viewBox="0 0 16 16"
-          version="1.1"
-          width="16"
-          aria-hidden="true"
+            class="octicon octicon-mark-github v-align-middle"
+            height="32"
+            viewBox="0 0 16 16"
+            version="1.1"
+            width="16"
+            aria-hidden="true"
         >
           <path
-            fill-rule="evenodd"
-            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+              fill-rule="evenodd"
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
           />
         </svg>
       </a>
@@ -26,11 +26,12 @@
     <div class="wrap flex-1">
       <div class="c">
         <tree
-          :setting="setting"
-          :nodes="nodes"
-          @onClick="onClick"
-          @onCheck="onCheck"
-          @onCreated="handleCreated"
+            ref="tree"
+            :setting="setting"
+            :nodes="treeNode"
+            @onClick="onClick"
+            @onCheck="onCheck"
+            @onCreated="handleCreated"
         />
       </div>
     </div>
@@ -49,33 +50,49 @@
 </template>
 
 <script>
-const bigData = require("@/mock/big-tree.json");
+import tree from './components/ztree'
+const bigData = require('@/mock/big-tree.json')
 const simpleData = [
-  { id: 1, pid: 0, name: "随意勾选 1", open: true },
-  { id: 11, pid: 1, name: "随意勾选 1-1", open: true },
-  { id: 111, pid: 11, name: "随意勾选 1-1-1" },
-  { id: 112, pid: 11, name: "随意勾选 1-1-2" },
-  { id: 12, pid: 1, name: "随意勾选 1-2", open: true },
-  { id: 121, pid: 12, name: "随意勾选 1-2-1" },
-  { id: 122, pid: 12, name: "随意勾选 1-2-2" },
-  { id: 2, pid: 0, name: "随意勾选 2", checked: true, open: true },
-  { id: 21, pid: 2, name: "随意勾选 2-1" },
-  { id: 22, pid: 2, name: "随意勾选 2-2", open: true },
-  { id: 221, pid: 22, name: "随意勾选 2-2-1", checked: true },
-  { id: 222, pid: 22, name: "随意勾选 2-2-2" },
-  { id: 23, pid: 2, name: "随意勾选 2-3" }
-];
-const dataQueue = [bigData.data, simpleData];
+  { id: 1, pid: 0, name: '随意勾选 1', open: true },
+  { id: 11, pid: 1, name: '随意勾选 1-1', open: true },
+  { id: 111, pid: 11, name: '随意勾选 1-1-1' },
+  { id: 112, pid: 11, name: '随意勾选 1-1-2' },
+  { id: 12, pid: 1, name: '随意勾选 1-2', open: true },
+  { id: 121, pid: 12, name: '随意勾选 1-2-1' },
+  { id: 122, pid: 12, name: '随意勾选 1-2-2' },
+  { id: 2, pid: 0, name: '随意勾选 2', checked: true, open: true },
+  { id: 21, pid: 2, name: '随意勾选 2-1' },
+  { id: 22, pid: 2, name: '随意勾选 2-2', open: true },
+  { id: 221, pid: 22, name: '随意勾选 2-2-1', checked: true },
+  { id: 222, pid: 22, name: '随意勾选 2-2-2' },
+  { id: 23, pid: 2, name: '随意勾选 2-3' }
+]
+const dataQueue = [bigData.data, simpleData]
 
 export default {
-  name: "app",
+  name: 'app',
   components: {
-    tree: resolve => require(["./components/ztree.vue"], resolve)
+    tree
   },
-  data() {
+  data () {
     return {
       showIndex: 0,
       ztreeObj: null,
+      treeNode: [
+        { id: 1, pid: 0, name: '随意勾选 1', open: true },
+        { id: 11, pid: 1, name: '随意勾选 1-1', open: true },
+        { id: 111, pid: 11, name: '随意勾选 1-1-1' },
+        { id: 112, pid: 11, name: '随意勾选 1-1-2' },
+        { id: 12, pid: 1, name: '随意勾选 1-2', open: true },
+        { id: 121, pid: 12, name: '随意勾选 1-2-1' },
+        { id: 122, pid: 12, name: '随意勾选 1-2-2' },
+        { id: 2, pid: 0, name: '随意勾选 2', checked: true, open: true },
+        { id: 21, pid: 2, name: '随意勾选 2-1' },
+        { id: 22, pid: 2, name: '随意勾选 2-2', open: true },
+        { id: 221, pid: 22, name: '随意勾选 2-2-1', checked: true },
+        { id: 222, pid: 22, name: '随意勾选 2-2-2' },
+        { id: 23, pid: 2, name: '随意勾选 2-3' }
+      ],
       setting: {
         check: {
           enable: true
@@ -83,7 +100,7 @@ export default {
         data: {
           simpleData: {
             enable: true,
-            pIdKey: "pid"
+            pIdKey: 'pid'
           }
         },
         view: {
@@ -92,70 +109,81 @@ export default {
           removeHoverDom: this.removeHoverDom,
         }
       }
-    };
-  },
-  computed: {
-    nodes: function() {
-      return dataQueue[this.showIndex];
     }
   },
+  computed: {
+    nodes: function () {
+      return dataQueue[this.showIndex]
+    }
+  },
+  mounted () {
+    console.log(this.$refs)
+    this.$refs.tree.updateTree()
+  },
   methods: {
-    addHoverDom(treeid, treeNode) {
-      const item = document.getElementById(`${treeNode.tId}_a`);
-      if(item && !item.querySelector('.tree_extra_btn')){
-        const btn = document.createElement('sapn');
-        btn.id = `${treeid}_${treeNode.id}_btn`;
-        btn.classList.add('tree_extra_btn');
-        btn.innerText = '删除';
+    addHoverDom (treeid, treeNode) {
+      const item = document.getElementById(`${treeNode.tId}_a`)
+      if (item && !item.querySelector('.tree_extra_btn')) {
+        const btn = document.createElement('sapn')
+        btn.id = `${treeid}_${treeNode.id}_btn`
+        btn.classList.add('tree_extra_btn')
+        btn.innerText = '删除'
         btn.addEventListener('click', (e) => {
           e.stopPropagation()
           this.clickRemove(treeNode)
         })
-        item.appendChild(btn);
+        item.appendChild(btn)
       }
 
     },
-    removeHoverDom(treeid, treeNode) {
-      const item = document.getElementById(`${treeNode.tId}_a`);
-      if(item){
-        const btn = item.querySelector('.tree_extra_btn');
-        if(btn){
+    removeHoverDom (treeid, treeNode) {
+      const item = document.getElementById(`${treeNode.tId}_a`)
+      if (item) {
+        const btn = item.querySelector('.tree_extra_btn')
+        if (btn) {
           item.removeChild(btn)
         }
       }
     },
-    clickRemove(treeNode) {
+    clickRemove (treeNode) {
       console.log('remove', treeNode)
       this.ztreeObj && this.ztreeObj.removeNode(treeNode)
     },
-    onClick: function(evt, treeId, treeNode) {
+    onClick: function (evt, treeId, treeNode) {
       // 点击事件
-      console.log(evt.type, treeNode);
+      console.log(evt.type, treeNode)
     },
-    onCheck: function(evt, treeId, treeNode) {
+    onCheck: function (evt, treeId, treeNode) {
       // 选中事件
-      console.log(evt.type, treeNode);
+      console.log(evt.type, treeNode)
     },
-    handleCreated: function(ztreeObj) {
-      this.ztreeObj = ztreeObj;
+    handleCreated: function (ztreeObj) {
+      console.log('tree created')
+      this.ztreeObj = ztreeObj
       // onCreated 中操作ztreeObj对象展开第一个节点
-      ztreeObj.expandNode(ztreeObj.getNodes()[0], true);
+      ztreeObj.expandNode(ztreeObj.getNodes()[0], true)
     },
-    update: function() {
+    update: function () {
       // 更新示例数据
-      this.showIndex = this.showIndex === 0 ? 1 : 0;
+      const node = this.ztreeObj.getNodeByTId('ztree_8269330936_12')
+      this.ztreeObj.updateNode(node)
+      this.showIndex = this.showIndex === 0 ? 1 : 0
     }
   }
-};
+}
 </script>
 
 <style>
-html,body{height: 100%;}
+html, body {
+  height: 100%;
+}
+
 body {
   margin: 0;
 }
+
 /* 自定义按钮样式 */
-.tree_extra_btn{
+.tree_extra_btn {
   display: inline-block;
   padding: 0 3px;
   color: red;
@@ -228,26 +256,31 @@ body {
   text-align: center;
   color: #2c3e50;
 }
-.wrap{
+
+.wrap {
   overflow: hidden;
 }
+
 .c {
   width: 600px;
   height: 100%;
   overflow: auto;
   margin: auto;
 }
+
 .T {
   font-size: 34px;
   margin: 0 0 30px;
   height: 170px;
   line-height: 260px;
   overflow: hidden;
-  background:url(./assets/logo.png) center no-repeat;
+  background: url(./assets/logo.png) center no-repeat;
 }
+
 .toolbar {
   margin: 20px auto;
 }
+
 .toolbar .btn {
   padding: 0.5em 1em;
   outline: none;
