@@ -163,7 +163,7 @@ export default {
     handleCreated: function (ztreeObj) {
       console.log('tree created')
       this.ztreeObj = ztreeObj
-      this.ztreeObj.fuzzySearch('#search', { searchOrange: ['pid'] })
+      this.ztreeObj.fuzzySearch('#search', { searchOrange: ['id'] }, false, true)
       // onCreated 中操作ztreeObj对象展开第一个节点
       ztreeObj.expandNode(ztreeObj.getNodes()[0], true)
     },

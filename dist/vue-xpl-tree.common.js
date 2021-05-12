@@ -12494,7 +12494,11 @@ __webpack_require__.r(__webpack_exports__);
 
             if (isExpand) {
               //expand node
-              zTreeObj.expandNode(nodesShow[0].getPath()[0], true);
+              var paths = nodesShow[0].getPath();
+
+              for (var n = 0, len = paths.length - 1; n < len; n++) {
+                zTreeObj.expandNode(paths[n], true);
+              }
             }
           } else {
             //show all nodes when _keywords is blank and expand the root nodes
@@ -12503,6 +12507,7 @@ __webpack_require__.r(__webpack_exports__);
             $.each(rootNodes, function (n, obj) {
               zTreeObj.expandNode(obj, false); //expand all root nodes
             });
+            zTreeObj.expandNode(rootNodes[0], true);
           }
         }
       } //listen to change in input element

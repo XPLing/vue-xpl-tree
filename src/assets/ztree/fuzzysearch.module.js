@@ -110,13 +110,17 @@
               }
             })
             if (isExpand) { //expand node
-              zTreeObj.expandNode(nodesShow[0].getPath()[0], true)
+              var paths = nodesShow[0].getPath()
+              for (var n = 0, len = paths.length - 1; n < len; n++) {
+                zTreeObj.expandNode(paths[n], true)
+              }
             }
           } else { //show all nodes when _keywords is blank and expand the root nodes
             var rootNodes = zTreeObj.getNodesByParam('level', '0')//get all root nodes
             $.each(rootNodes, function (n, obj) {
               zTreeObj.expandNode(obj, false) //expand all root nodes
             })
+            zTreeObj.expandNode(rootNodes[0], true)
           }
         }
       }
