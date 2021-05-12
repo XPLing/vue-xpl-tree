@@ -22,7 +22,9 @@
         </svg>
       </a>
     </h1>
-
+    <div class="search-box">
+      <input id="search" type="text" placeholder="请输入关键字">
+    </div>
     <div class="wrap flex-1">
       <div class="c">
         <tree
@@ -51,6 +53,7 @@
 
 <script>
 import tree from './components/ztree'
+
 const bigData = require('@/mock/big-tree.json')
 const simpleData = [
   { id: 1, pid: 0, name: '随意勾选 1', open: true },
@@ -160,6 +163,7 @@ export default {
     handleCreated: function (ztreeObj) {
       console.log('tree created')
       this.ztreeObj = ztreeObj
+      this.ztreeObj.fuzzySearch('#search', { searchOrange: ['pid'] })
       // onCreated 中操作ztreeObj对象展开第一个节点
       ztreeObj.expandNode(ztreeObj.getNodes()[0], true)
     },
