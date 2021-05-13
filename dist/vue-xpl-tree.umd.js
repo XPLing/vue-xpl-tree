@@ -12383,6 +12383,9 @@ __webpack_require__.r(__webpack_exports__);
  * @param searchField selector of your input for fuzzy search
  * @param isHighLight whether highlight the match words, default true
  * @param isExpand whether to expand the node, default false
+ * @param {Object} customerOpts
+ *          input whether to enable input propertychange listener of the search field, default false
+ *          lazy setting interval of the input propertychange listener of the search field, default 500
  *
  * @returns
  */
@@ -12522,11 +12525,14 @@ __webpack_require__.r(__webpack_exports__);
       } //listen to change in input element
 
 
-      $(searchField).bind('input propertychange', function () {
-        var _keywords = $(this).val();
+      if (customerOpts.input) {
+        $(searchField).bind('input propertychange', function () {
+          var _keywords = $(this).val();
 
-        searchNodeLazy(_keywords); //call lazy load
-      });
+          searchNodeLazy(_keywords); //call lazy load
+        });
+      }
+
       var timeoutId = null;
       var lastKeyword = ''; // excute lazy load once after input change, the last pending task will be cancled
 
