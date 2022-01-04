@@ -30,10 +30,11 @@
         <tree
             ref="tree"
             :setting="setting"
-            :nodes="treeNode"
+            :nodes="nodes"
             @onClick="onClick"
             @onCheck="onCheck"
             @onCreated="handleCreated"
+            @beforeExpand="beforeExpand"
         />
       </div>
     </div>
@@ -79,26 +80,19 @@ export default {
   },
   data () {
     return {
-      showIndex: 0,
+      showIndex: 1,
       ztreeObj: null,
       treeNode: [
-        { id: 1, pid: 0, name: '随意勾选 1', open: true },
-        { id: 11, pid: 1, name: '随意勾选 1-1', open: true },
-        { id: 111, pid: 11, name: '随意勾选 1-1-1' },
-        { id: 112, pid: 11, name: '随意勾选 1-1-2' },
-        { id: 12, pid: 1, name: '随意勾选 1-2', open: true },
-        { id: 121, pid: 12, name: '随意勾选 1-2-1' },
-        { id: 122, pid: 12, name: '随意勾选 1-2-2' },
-        { id: 2, pid: 0, name: '随意勾选 2', checked: true, open: true },
-        { id: 21, pid: 2, name: '随意勾选 2-1' },
-        { id: 22, pid: 2, name: '随意勾选 2-2', open: true },
-        { id: 221, pid: 22, name: '随意勾选 2-2-1', checked: true },
-        { id: 222, pid: 22, name: '随意勾选 2-2-2' },
-        { id: 23, pid: 2, name: '随意勾选 2-3' }
+        // { name: '分页测试', t: '请点击分页按钮', id: '1', count: 2000, page: 0, pageSize: 100, isParent: true }
       ],
       setting: {
+        // async: {
+        //   enable: true,
+        //   url: '/'
+        // },
         check: {
-          enable: true
+          enable: true,
+          chkStyle: 'checkbox'
         },
         data: {
           simpleData: {
@@ -160,13 +154,18 @@ export default {
       // 选中事件
       console.log(evt.type, treeNode)
     },
+    beforeExpand (treeId, treeNode) {
+      console.log('beforeExpand')
+      // this.ztreeObj.reAsyncChildNodes(treeNode, "refresh");
+    },
     handleCreated: function (ztreeObj) {
       console.log('tree created')
       this.ztreeObj = ztreeObj
       this.ztreeObj.fuzzySearch('#search', { searchOrange: ['id'] }, false, true)
       // onCreated 中操作ztreeObj对象展开第一个节点
-      ztreeObj.expandNode(ztreeObj.getNodes()[0], true)
-    },
+      // ztreeObj.expandNode(ztreeObj.getNodes()[0], true)
+    }
+    ,
     update: function () {
       // 更新示例数据
       const node = this.ztreeObj.getNodeByTId('ztree_8269330936_12')

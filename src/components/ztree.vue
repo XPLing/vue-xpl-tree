@@ -8,7 +8,7 @@ import * as $ from 'jquery'
 if (!window.jQuery) {
   window.jQuery = $
 }
-require('@ztree/ztree_v3/js/jquery.ztree.all')
+require('@/assets/ztree/jquery.ztree.all')
 require('@ztree/ztree_v3/js/jquery.ztree.exhide')
 require('@/assets/ztree/fuzzysearch.module')
 
