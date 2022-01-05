@@ -9,7 +9,7 @@ if (!window.jQuery) {
   window.jQuery = $
 }
 require('@/assets/ztree/jquery.ztree.all')
-require('@ztree/ztree_v3/js/jquery.ztree.exhide')
+require('@/assets/ztree/jquery.ztree.exhide')
 require('@/assets/ztree/fuzzysearch.module')
 
 export default {
@@ -174,4 +174,5 @@ export default {
 <style scoped lang="scss">
 /* beauty ztree! */
 @import "ztree.scss";
+@import "ztree-card";
 </style>

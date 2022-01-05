@@ -43,12 +43,7 @@
       <button class="btn" type="button" @click="update">更新数据</button>
     </div>
 
-    <footer class="foot">
-      <p>
-        © 2019 - 3019 Author
-        <a href="https://refined-x.com/" target="_blank">前端路上</a>
-      </p>
-    </footer>
+    <footer class="foot"></footer>
   </div>
 </template>
 
@@ -69,7 +64,9 @@ const simpleData = [
   { id: 22, pid: 2, name: '随意勾选 2-2', open: true },
   { id: 221, pid: 22, name: '随意勾选 2-2-1', checked: true },
   { id: 222, pid: 22, name: '随意勾选 2-2-2' },
-  { id: 23, pid: 2, name: '随意勾选 2-3' }
+  { id: 23, pid: 2, name: '随意勾选 2-3' },
+  { id: 3, pid: 3, name: '随意勾选 3' },
+  { id: 4, pid: 4, name: '随意勾选 4' },
 ]
 const dataQueue = [bigData.data, simpleData]
 
@@ -103,7 +100,7 @@ export default {
         view: {
           showIcon: false,
           addHoverDom: this.addHoverDom,
-          removeHoverDom: this.removeHoverDom,
+          removeHoverDom: this.removeHoverDom
         }
       }
     }

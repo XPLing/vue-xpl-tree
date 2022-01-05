@@ -18,9 +18,12 @@
       className: {
         BUTTON: "button",
         LEVEL: "level",
-        ICO_LOADING: "ico_loading",
-        SWITCH: "switch",
-        NAME: 'node_name'
+        ICO_LOADING: 'ico_loading',
+        SWITCH: 'switch',
+        NAME: 'node_name',
+        PARENT: 'node_parent',
+        LEAF: 'node_leaf',
+        WRAPPER: 'wrapper'
       },
       event: {
         NODECREATED: "ztree_nodeCreated",
@@ -56,6 +59,9 @@
       },
       node: {
         CURSELECTED: "curSelectedNode"
+      },
+      ui: {
+        card: 'tree_card'
       }
     },
     //default setting of core
@@ -74,7 +80,8 @@
         showIcon: true,
         showLine: true,
         showTitle: true,
-        txtSelectedEnable: false
+        txtSelectedEnable: false,
+        UIStyle: 'normal' // 'normal' | 'card'
       },
       data: {
         key: {
@@ -1011,9 +1018,9 @@
             childHtml = view.appendNodes(setting, level + 1, children, node, -1, initFlag, openFlag && node.open);
           }
           if (openFlag) {
-            view.makeDOMNodeMainBefore(html, setting, node);
+            view.makeDOMNodeMainBefore(html, setting, node, isParent);
             view.makeDOMNodeMainWrapperBefore(html, setting, node);
-            view.makeDOMNodeLine(html, setting, node);
+            if(setting.view.UIStyle !== 'card') view.makeDOMNodeLine(html, setting, node);
             data.getBeforeA(setting, node, html);
             view.makeDOMNodeNameBefore(html, setting, node);
             data.getInnerBeforeA(setting, node, html);
@@ -1021,6 +1028,7 @@
             data.getInnerAfterA(setting, node, html);
             view.makeDOMNodeNameAfter(html, setting, node);
             data.getAfterA(setting, node, html);
+            if(setting.view.UIStyle === 'card') view.makeDOMNodeLine(html, setting, node);
             view.makeDOMNodeMainWrapperAfter(html, setting, node);
             if (isParent && node.open) {
               view.makeUlHtml(setting, node, html, childHtml.join(''));
@@ -1145,6 +1153,7 @@
           n = list[i];
           if (node === n || (!node && (!excludeNode || excludeNode !== n))) {
             $$(n, consts.id.A, setting).removeClass(consts.node.CURSELECTED);
+            $$(n, consts.id.WRAPPER, setting).removeClass(consts.node.CURSELECTED);
             if (node) {
               data.removeSelectedNode(setting, node);
               break;
@@ -1239,6 +1248,7 @@
         }
         var ulObj = $$(node, consts.id.UL, setting),
           switchObj = $$(node, consts.id.SWITCH, setting),
+          wrapperObj = $$(node, consts.id.WRAPPER, setting),
           icoObj = $$(node, consts.id.ICON, setting);
 
         if (isParent) {
@@ -1248,6 +1258,7 @@
           }
 
           if (node.open) {
+            view.replaceSwitchClass(node, wrapperObj, consts.folder.OPEN);
             view.replaceSwitchClass(node, switchObj, consts.folder.OPEN);
             view.replaceIcoClass(node, icoObj, consts.folder.OPEN);
             if (animateFlag == false || setting.view.expandSpeed == "") {
@@ -1262,6 +1273,7 @@
               }
             }
           } else {
+            view.replaceSwitchClass(node, wrapperObj, consts.folder.CLOSE);
             view.replaceSwitchClass(node, switchObj, consts.folder.CLOSE);
             view.replaceIcoClass(node, icoObj, consts.folder.CLOSE);
             if (animateFlag == false || setting.view.expandSpeed == "" || !(children && children.length > 0)) {
@@ -1329,14 +1341,14 @@
       makeDOMNodeMainAfter: function (html, setting, node) {
         html.push("</li>");
       },
-      makeDOMNodeMainBefore: function (html, setting, node) {
-        html.push("<li id='", node.tId, "' class='", consts.className.LEVEL, node.level, "' tabindex='0' hidefocus='true' treenode>");
+      makeDOMNodeMainBefore: function (html, setting, node, isParent) {
+        html.push("<li id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, "' tabindex='0' hidefocus='true' treenode>");
       },
       makeDOMNodeMainWrapperAfter: function (html, setting, node) {
         html.push("</div>");
       },
       makeDOMNodeMainWrapperBefore: function (html, setting, node) {
-        html.push("<div id='", node.tId, consts.id.WRAPPER,"' class='", consts.className.LEVEL, node.level, "' treenode", consts.id.WRAPPER, ">");
+        html.push("<div id='", node.tId, consts.id.WRAPPER,"' class='", consts.className.LEVEL, node.level, ' ', consts.className.WRAPPER, '_', node.open ? consts.folder.OPEN : consts.folder.CLOSE, '\' treenode', consts.id.WRAPPER, ">");
       },
       makeDOMNodeNameAfter: function (html, setting, node) {
         html.push("</a>");
@@ -1661,6 +1673,7 @@
           view.cancelPreSelectedNode(setting, null, node);
         }
         $$(node, consts.id.A, setting).addClass(consts.node.CURSELECTED);
+        $$(node, consts.id.WRAPPER, setting).addClass(consts.node.CURSELECTED);
         data.addSelectedNode(setting, node);
         setting.treeObj.trigger(consts.event.SELECTED, [setting.treeId, node]);
       },
@@ -1770,6 +1783,12 @@
       setting.treeId = obj.attr("id");
       setting.treeObj = obj;
       setting.treeObj.empty();
+      if(setting.view.UIStyle === 'card'){
+        setting.view.showLine = false
+      }
+      if (setting.treeObj && consts.ui[setting.view.UIStyle]) {
+        setting.treeObj.addClass(consts.ui[setting.view.UIStyle])
+      }
       settings[setting.treeId] = setting;
       //For some older browser,(e.g., ie6)
       if (typeof document.body.style.maxHeight === "undefined") {

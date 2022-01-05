@@ -1,0 +1,41 @@
+.tree_card ::v-deep {
+  & > li[treenode] {
+    border: #DFDFDF 1px solid;
+
+    &.node_parent {
+      margin-bottom: 5px;
+    }
+
+    [treenode] + [treenode] {
+      border-top: #DFDFDF 1px solid;
+    }
+
+    ul {
+      border-top: #DFDFDF 1px solid;
+    }
+  }
+
+  li.node_leaf {
+    & + .node_leaf {
+      border-top: none;
+    }
+  }
+
+  [treenode_wrapper] {
+    position: relative;
+    padding-left: 5px;
+
+    &.wrapper_open {
+      background-color: #f1f1f1;
+    }
+  }
+
+  [treenode_switch] {
+    position: absolute;
+    right: 0;
+  }
+
+  li ul {
+    padding-left: 0;
+  }
+}
