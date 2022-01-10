@@ -100,7 +100,8 @@ export default {
         view: {
           showIcon: false,
           addHoverDom: this.addHoverDom,
-          removeHoverDom: this.removeHoverDom
+          removeHoverDom: this.removeHoverDom,
+          UIStyle: 'card'
         }
       }
     }

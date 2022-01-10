@@ -125,7 +125,7 @@
       },
       makeDOMNodeMainBefore: function (html, setting, node, isParent) {
         var isHidden = data.isHidden(setting, node);
-        html.push("<li ", (isHidden ? "style='display:none;' " : ""), "id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, "' tabindex='0' hidefocus='true' treenode>");
+        html.push("<li ", (isHidden ? "style='display:none;' " : ""), "id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', consts.className.MAIN, '_', node.open ? consts.folder.OPEN : consts.folder.CLOSE, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, "' tabindex='0' hidefocus='true' treenode>");
       },
       showNode: function (setting, node, options) {
         data.isHidden(setting, node, false);

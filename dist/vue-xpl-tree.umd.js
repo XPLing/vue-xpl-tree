@@ -136,6 +136,57 @@ module.exports = function (S, index, unicode) {
 
 /***/ }),
 
+/***/ "0a49":
+/***/ (function(module, exports, __webpack_require__) {
+
+// 0 -> Array#forEach
+// 1 -> Array#map
+// 2 -> Array#filter
+// 3 -> Array#some
+// 4 -> Array#every
+// 5 -> Array#find
+// 6 -> Array#findIndex
+var ctx = __webpack_require__("9b43");
+var IObject = __webpack_require__("626a");
+var toObject = __webpack_require__("4bf8");
+var toLength = __webpack_require__("9def");
+var asc = __webpack_require__("cd1c");
+module.exports = function (TYPE, $create) {
+  var IS_MAP = TYPE == 1;
+  var IS_FILTER = TYPE == 2;
+  var IS_SOME = TYPE == 3;
+  var IS_EVERY = TYPE == 4;
+  var IS_FIND_INDEX = TYPE == 6;
+  var NO_HOLES = TYPE == 5 || IS_FIND_INDEX;
+  var create = $create || asc;
+  return function ($this, callbackfn, that) {
+    var O = toObject($this);
+    var self = IObject(O);
+    var f = ctx(callbackfn, that, 3);
+    var length = toLength(self.length);
+    var index = 0;
+    var result = IS_MAP ? create($this, length) : IS_FILTER ? create($this, 0) : undefined;
+    var val, res;
+    for (;length > index; index++) if (NO_HOLES || index in self) {
+      val = self[index];
+      res = f(val, index, O);
+      if (TYPE) {
+        if (IS_MAP) result[index] = res;   // map
+        else if (res) switch (TYPE) {
+          case 3: return true;             // some
+          case 5: return val;              // find
+          case 6: return index;            // findIndex
+          case 2: result.push(val);        // filter
+        } else if (IS_EVERY) return false; // every
+      }
+    }
+    return IS_FIND_INDEX ? -1 : IS_SOME || IS_EVERY ? IS_EVERY : result;
+  };
+};
+
+
+/***/ }),
+
 /***/ "0bfb":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -11060,6 +11111,18 @@ return jQuery;
 
 /***/ }),
 
+/***/ "1169":
+/***/ (function(module, exports, __webpack_require__) {
+
+// 7.2.2 IsArray(argument)
+var cof = __webpack_require__("2d95");
+module.exports = Array.isArray || function isArray(arg) {
+  return cof(arg) == 'Array';
+};
+
+
+/***/ }),
+
 /***/ "11e9":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -11078,6 +11141,116 @@ exports.f = __webpack_require__("9e1e") ? gOPD : function getOwnPropertyDescript
     return gOPD(O, P);
   } catch (e) { /* empty */ }
   if (has(O, P)) return createDesc(!pIE.f.call(O, P), O[P]);
+};
+
+
+/***/ }),
+
+/***/ "1991":
+/***/ (function(module, exports, __webpack_require__) {
+
+var ctx = __webpack_require__("9b43");
+var invoke = __webpack_require__("31f4");
+var html = __webpack_require__("fab2");
+var cel = __webpack_require__("230e");
+var global = __webpack_require__("7726");
+var process = global.process;
+var setTask = global.setImmediate;
+var clearTask = global.clearImmediate;
+var MessageChannel = global.MessageChannel;
+var Dispatch = global.Dispatch;
+var counter = 0;
+var queue = {};
+var ONREADYSTATECHANGE = 'onreadystatechange';
+var defer, channel, port;
+var run = function () {
+  var id = +this;
+  // eslint-disable-next-line no-prototype-builtins
+  if (queue.hasOwnProperty(id)) {
+    var fn = queue[id];
+    delete queue[id];
+    fn();
+  }
+};
+var listener = function (event) {
+  run.call(event.data);
+};
+// Node.js 0.9+ & IE10+ has setImmediate, otherwise:
+if (!setTask || !clearTask) {
+  setTask = function setImmediate(fn) {
+    var args = [];
+    var i = 1;
+    while (arguments.length > i) args.push(arguments[i++]);
+    queue[++counter] = function () {
+      // eslint-disable-next-line no-new-func
+      invoke(typeof fn == 'function' ? fn : Function(fn), args);
+    };
+    defer(counter);
+    return counter;
+  };
+  clearTask = function clearImmediate(id) {
+    delete queue[id];
+  };
+  // Node.js 0.8-
+  if (__webpack_require__("2d95")(process) == 'process') {
+    defer = function (id) {
+      process.nextTick(ctx(run, id, 1));
+    };
+  // Sphere (JS game engine) Dispatch API
+  } else if (Dispatch && Dispatch.now) {
+    defer = function (id) {
+      Dispatch.now(ctx(run, id, 1));
+    };
+  // Browsers with MessageChannel, includes WebWorkers
+  } else if (MessageChannel) {
+    channel = new MessageChannel();
+    port = channel.port2;
+    channel.port1.onmessage = listener;
+    defer = ctx(port.postMessage, port, 1);
+  // Browsers with postMessage, skip WebWorkers
+  // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'
+  } else if (global.addEventListener && typeof postMessage == 'function' && !global.importScripts) {
+    defer = function (id) {
+      global.postMessage(id + '', '*');
+    };
+    global.addEventListener('message', listener, false);
+  // IE8-
+  } else if (ONREADYSTATECHANGE in cel('script')) {
+    defer = function (id) {
+      html.appendChild(cel('script'))[ONREADYSTATECHANGE] = function () {
+        html.removeChild(this);
+        run.call(id);
+      };
+    };
+  // Rest old browsers
+  } else {
+    defer = function (id) {
+      setTimeout(ctx(run, id, 1), 0);
+    };
+  }
+}
+module.exports = {
+  set: setTask,
+  clear: clearTask
+};
+
+
+/***/ }),
+
+/***/ "1fa8":
+/***/ (function(module, exports, __webpack_require__) {
+
+// call something on iterator step with safe closing on error
+var anObject = __webpack_require__("cb7c");
+module.exports = function (iterator, fn, value, entries) {
+  try {
+    return entries ? fn(anObject(value)[0], value[1]) : fn(value);
+  // 7.4.6 IteratorClose(iterator, completion)
+  } catch (e) {
+    var ret = iterator['return'];
+    if (ret !== undefined) anObject(ret.call(iterator));
+    throw e;
+  }
 };
 
 
@@ -11239,6 +11412,163 @@ exports.f = Object.getOwnPropertySymbols;
 
 /***/ }),
 
+/***/ "27ee":
+/***/ (function(module, exports, __webpack_require__) {
+
+var classof = __webpack_require__("23c6");
+var ITERATOR = __webpack_require__("2b4c")('iterator');
+var Iterators = __webpack_require__("84f2");
+module.exports = __webpack_require__("8378").getIteratorMethod = function (it) {
+  if (it != undefined) return it[ITERATOR]
+    || it['@@iterator']
+    || Iterators[classof(it)];
+};
+
+
+/***/ }),
+
+/***/ "28a5":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var isRegExp = __webpack_require__("aae3");
+var anObject = __webpack_require__("cb7c");
+var speciesConstructor = __webpack_require__("ebd6");
+var advanceStringIndex = __webpack_require__("0390");
+var toLength = __webpack_require__("9def");
+var callRegExpExec = __webpack_require__("5f1b");
+var regexpExec = __webpack_require__("520a");
+var fails = __webpack_require__("79e5");
+var $min = Math.min;
+var $push = [].push;
+var $SPLIT = 'split';
+var LENGTH = 'length';
+var LAST_INDEX = 'lastIndex';
+var MAX_UINT32 = 0xffffffff;
+
+// babel-minify transpiles RegExp('x', 'y') -> /x/y and it causes SyntaxError
+var SUPPORTS_Y = !fails(function () { RegExp(MAX_UINT32, 'y'); });
+
+// @@split logic
+__webpack_require__("214f")('split', 2, function (defined, SPLIT, $split, maybeCallNative) {
+  var internalSplit;
+  if (
+    'abbc'[$SPLIT](/(b)*/)[1] == 'c' ||
+    'test'[$SPLIT](/(?:)/, -1)[LENGTH] != 4 ||
+    'ab'[$SPLIT](/(?:ab)*/)[LENGTH] != 2 ||
+    '.'[$SPLIT](/(.?)(.?)/)[LENGTH] != 4 ||
+    '.'[$SPLIT](/()()/)[LENGTH] > 1 ||
+    ''[$SPLIT](/.?/)[LENGTH]
+  ) {
+    // based on es5-shim implementation, need to rework it
+    internalSplit = function (separator, limit) {
+      var string = String(this);
+      if (separator === undefined && limit === 0) return [];
+      // If `separator` is not a regex, use native split
+      if (!isRegExp(separator)) return $split.call(string, separator, limit);
+      var output = [];
+      var flags = (separator.ignoreCase ? 'i' : '') +
+                  (separator.multiline ? 'm' : '') +
+                  (separator.unicode ? 'u' : '') +
+                  (separator.sticky ? 'y' : '');
+      var lastLastIndex = 0;
+      var splitLimit = limit === undefined ? MAX_UINT32 : limit >>> 0;
+      // Make `global` and avoid `lastIndex` issues by working with a copy
+      var separatorCopy = new RegExp(separator.source, flags + 'g');
+      var match, lastIndex, lastLength;
+      while (match = regexpExec.call(separatorCopy, string)) {
+        lastIndex = separatorCopy[LAST_INDEX];
+        if (lastIndex > lastLastIndex) {
+          output.push(string.slice(lastLastIndex, match.index));
+          if (match[LENGTH] > 1 && match.index < string[LENGTH]) $push.apply(output, match.slice(1));
+          lastLength = match[0][LENGTH];
+          lastLastIndex = lastIndex;
+          if (output[LENGTH] >= splitLimit) break;
+        }
+        if (separatorCopy[LAST_INDEX] === match.index) separatorCopy[LAST_INDEX]++; // Avoid an infinite loop
+      }
+      if (lastLastIndex === string[LENGTH]) {
+        if (lastLength || !separatorCopy.test('')) output.push('');
+      } else output.push(string.slice(lastLastIndex));
+      return output[LENGTH] > splitLimit ? output.slice(0, splitLimit) : output;
+    };
+  // Chakra, V8
+  } else if ('0'[$SPLIT](undefined, 0)[LENGTH]) {
+    internalSplit = function (separator, limit) {
+      return separator === undefined && limit === 0 ? [] : $split.call(this, separator, limit);
+    };
+  } else {
+    internalSplit = $split;
+  }
+
+  return [
+    // `String.prototype.split` method
+    // https://tc39.github.io/ecma262/#sec-string.prototype.split
+    function split(separator, limit) {
+      var O = defined(this);
+      var splitter = separator == undefined ? undefined : separator[SPLIT];
+      return splitter !== undefined
+        ? splitter.call(separator, O, limit)
+        : internalSplit.call(String(O), separator, limit);
+    },
+    // `RegExp.prototype[@@split]` method
+    // https://tc39.github.io/ecma262/#sec-regexp.prototype-@@split
+    //
+    // NOTE: This cannot be properly polyfilled in engines that don't support
+    // the 'y' flag.
+    function (regexp, limit) {
+      var res = maybeCallNative(internalSplit, regexp, this, limit, internalSplit !== $split);
+      if (res.done) return res.value;
+
+      var rx = anObject(regexp);
+      var S = String(this);
+      var C = speciesConstructor(rx, RegExp);
+
+      var unicodeMatching = rx.unicode;
+      var flags = (rx.ignoreCase ? 'i' : '') +
+                  (rx.multiline ? 'm' : '') +
+                  (rx.unicode ? 'u' : '') +
+                  (SUPPORTS_Y ? 'y' : 'g');
+
+      // ^(? + rx + ) is needed, in combination with some S slicing, to
+      // simulate the 'y' flag.
+      var splitter = new C(SUPPORTS_Y ? rx : '^(?:' + rx.source + ')', flags);
+      var lim = limit === undefined ? MAX_UINT32 : limit >>> 0;
+      if (lim === 0) return [];
+      if (S.length === 0) return callRegExpExec(splitter, S) === null ? [S] : [];
+      var p = 0;
+      var q = 0;
+      var A = [];
+      while (q < S.length) {
+        splitter.lastIndex = SUPPORTS_Y ? q : 0;
+        var z = callRegExpExec(splitter, SUPPORTS_Y ? S : S.slice(q));
+        var e;
+        if (
+          z === null ||
+          (e = $min(toLength(splitter.lastIndex + (SUPPORTS_Y ? 0 : q)), S.length)) === p
+        ) {
+          q = advanceStringIndex(S, q, unicodeMatching);
+        } else {
+          A.push(S.slice(p, q));
+          if (A.length === lim) return A;
+          for (var i = 1; i <= z.length - 1; i++) {
+            A.push(z[i]);
+            if (A.length === lim) return A;
+          }
+          q = p = e;
+        }
+      }
+      A.push(S.slice(p));
+      return A;
+    }
+  ];
+});
+
+
+/***/ }),
+
 /***/ "2aba":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -11335,6 +11665,29 @@ $export($export.P + $export.F * __webpack_require__("5147")(INCLUDES), 'String',
 
 /***/ }),
 
+/***/ "31f4":
+/***/ (function(module, exports) {
+
+// fast apply, http://jsperf.lnkit.com/fast-apply/5
+module.exports = function (fn, args, that) {
+  var un = that === undefined;
+  switch (args.length) {
+    case 0: return un ? fn()
+                      : fn.call(that);
+    case 1: return un ? fn(args[0])
+                      : fn.call(that, args[0]);
+    case 2: return un ? fn(args[0], args[1])
+                      : fn.call(that, args[0], args[1]);
+    case 3: return un ? fn(args[0], args[1], args[2])
+                      : fn.call(that, args[0], args[1], args[2]);
+    case 4: return un ? fn(args[0], args[1], args[2], args[3])
+                      : fn.call(that, args[0], args[1], args[2], args[3]);
+  } return fn.apply(that, args);
+};
+
+
+/***/ }),
+
 /***/ "32e9":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -11346,6 +11699,33 @@ module.exports = __webpack_require__("9e1e") ? function (object, key, value) {
   object[key] = value;
   return object;
 };
+
+
+/***/ }),
+
+/***/ "33a4":
+/***/ (function(module, exports, __webpack_require__) {
+
+// check on default Array iterator
+var Iterators = __webpack_require__("84f2");
+var ITERATOR = __webpack_require__("2b4c")('iterator');
+var ArrayProto = Array.prototype;
+
+module.exports = function (it) {
+  return it !== undefined && (Iterators.Array === it || ArrayProto[ITERATOR] === it);
+};
+
+
+/***/ }),
+
+/***/ "3846":
+/***/ (function(module, exports, __webpack_require__) {
+
+// 21.2.5.3 get RegExp.prototype.flags()
+if (__webpack_require__("9e1e") && /./g.flags != 'g') __webpack_require__("86cc").f(RegExp.prototype, 'flags', {
+  configurable: true,
+  get: __webpack_require__("0bfb")
+});
 
 
 /***/ }),
@@ -11400,17 +11780,6 @@ __webpack_require__("7a56")('RegExp');
 
 /***/ }),
 
-/***/ "3be9":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("c3bd");
-/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
-/* unused harmony reexport * */
-
-
-/***/ }),
-
 /***/ "4588":
 /***/ (function(module, exports) {
 
@@ -11435,6 +11804,38 @@ module.exports = function (bitmap, value) {
     value: value
   };
 };
+
+
+/***/ }),
+
+/***/ "4a59":
+/***/ (function(module, exports, __webpack_require__) {
+
+var ctx = __webpack_require__("9b43");
+var call = __webpack_require__("1fa8");
+var isArrayIter = __webpack_require__("33a4");
+var anObject = __webpack_require__("cb7c");
+var toLength = __webpack_require__("9def");
+var getIterFn = __webpack_require__("27ee");
+var BREAK = {};
+var RETURN = {};
+var exports = module.exports = function (iterable, entries, fn, that, ITERATOR) {
+  var iterFn = ITERATOR ? function () { return iterable; } : getIterFn(iterable);
+  var f = ctx(fn, that, entries ? 2 : 1);
+  var index = 0;
+  var length, step, iterator, result;
+  if (typeof iterFn != 'function') throw TypeError(iterable + ' is not iterable!');
+  // fast case for arrays with default iterator
+  if (isArrayIter(iterFn)) for (length = toLength(iterable.length); length > index; index++) {
+    result = entries ? f(anObject(step = iterable[index])[0], step[1]) : f(iterable[index]);
+    if (result === BREAK || result === RETURN) return result;
+  } else for (iterator = iterFn.call(iterable); !(step = iterator.next()).done;) {
+    result = call(iterator, f, step.value, entries);
+    if (result === BREAK || result === RETURN) return result;
+  }
+};
+exports.BREAK = BREAK;
+exports.RETURN = RETURN;
 
 
 /***/ }),
@@ -11544,6 +11945,323 @@ exports.f = {}.propertyIsEnumerable;
 
 /***/ }),
 
+/***/ "53ca":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return _typeof; });
+function _typeof(obj) {
+  "@babel/helpers - typeof";
+
+  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+    _typeof = function _typeof(obj) {
+      return typeof obj;
+    };
+  } else {
+    _typeof = function _typeof(obj) {
+      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+    };
+  }
+
+  return _typeof(obj);
+}
+
+/***/ }),
+
+/***/ "551c":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var LIBRARY = __webpack_require__("2d00");
+var global = __webpack_require__("7726");
+var ctx = __webpack_require__("9b43");
+var classof = __webpack_require__("23c6");
+var $export = __webpack_require__("5ca1");
+var isObject = __webpack_require__("d3f4");
+var aFunction = __webpack_require__("d8e8");
+var anInstance = __webpack_require__("f605");
+var forOf = __webpack_require__("4a59");
+var speciesConstructor = __webpack_require__("ebd6");
+var task = __webpack_require__("1991").set;
+var microtask = __webpack_require__("8079")();
+var newPromiseCapabilityModule = __webpack_require__("a5b8");
+var perform = __webpack_require__("9c80");
+var userAgent = __webpack_require__("a25f");
+var promiseResolve = __webpack_require__("bcaa");
+var PROMISE = 'Promise';
+var TypeError = global.TypeError;
+var process = global.process;
+var versions = process && process.versions;
+var v8 = versions && versions.v8 || '';
+var $Promise = global[PROMISE];
+var isNode = classof(process) == 'process';
+var empty = function () { /* empty */ };
+var Internal, newGenericPromiseCapability, OwnPromiseCapability, Wrapper;
+var newPromiseCapability = newGenericPromiseCapability = newPromiseCapabilityModule.f;
+
+var USE_NATIVE = !!function () {
+  try {
+    // correct subclassing with @@species support
+    var promise = $Promise.resolve(1);
+    var FakePromise = (promise.constructor = {})[__webpack_require__("2b4c")('species')] = function (exec) {
+      exec(empty, empty);
+    };
+    // unhandled rejections tracking support, NodeJS Promise without it fails @@species test
+    return (isNode || typeof PromiseRejectionEvent == 'function')
+      && promise.then(empty) instanceof FakePromise
+      // v8 6.6 (Node 10 and Chrome 66) have a bug with resolving custom thenables
+      // https://bugs.chromium.org/p/chromium/issues/detail?id=830565
+      // we can't detect it synchronously, so just check versions
+      && v8.indexOf('6.6') !== 0
+      && userAgent.indexOf('Chrome/66') === -1;
+  } catch (e) { /* empty */ }
+}();
+
+// helpers
+var isThenable = function (it) {
+  var then;
+  return isObject(it) && typeof (then = it.then) == 'function' ? then : false;
+};
+var notify = function (promise, isReject) {
+  if (promise._n) return;
+  promise._n = true;
+  var chain = promise._c;
+  microtask(function () {
+    var value = promise._v;
+    var ok = promise._s == 1;
+    var i = 0;
+    var run = function (reaction) {
+      var handler = ok ? reaction.ok : reaction.fail;
+      var resolve = reaction.resolve;
+      var reject = reaction.reject;
+      var domain = reaction.domain;
+      var result, then, exited;
+      try {
+        if (handler) {
+          if (!ok) {
+            if (promise._h == 2) onHandleUnhandled(promise);
+            promise._h = 1;
+          }
+          if (handler === true) result = value;
+          else {
+            if (domain) domain.enter();
+            result = handler(value); // may throw
+            if (domain) {
+              domain.exit();
+              exited = true;
+            }
+          }
+          if (result === reaction.promise) {
+            reject(TypeError('Promise-chain cycle'));
+          } else if (then = isThenable(result)) {
+            then.call(result, resolve, reject);
+          } else resolve(result);
+        } else reject(value);
+      } catch (e) {
+        if (domain && !exited) domain.exit();
+        reject(e);
+      }
+    };
+    while (chain.length > i) run(chain[i++]); // variable length - can't use forEach
+    promise._c = [];
+    promise._n = false;
+    if (isReject && !promise._h) onUnhandled(promise);
+  });
+};
+var onUnhandled = function (promise) {
+  task.call(global, function () {
+    var value = promise._v;
+    var unhandled = isUnhandled(promise);
+    var result, handler, console;
+    if (unhandled) {
+      result = perform(function () {
+        if (isNode) {
+          process.emit('unhandledRejection', value, promise);
+        } else if (handler = global.onunhandledrejection) {
+          handler({ promise: promise, reason: value });
+        } else if ((console = global.console) && console.error) {
+          console.error('Unhandled promise rejection', value);
+        }
+      });
+      // Browsers should not trigger `rejectionHandled` event if it was handled here, NodeJS - should
+      promise._h = isNode || isUnhandled(promise) ? 2 : 1;
+    } promise._a = undefined;
+    if (unhandled && result.e) throw result.v;
+  });
+};
+var isUnhandled = function (promise) {
+  return promise._h !== 1 && (promise._a || promise._c).length === 0;
+};
+var onHandleUnhandled = function (promise) {
+  task.call(global, function () {
+    var handler;
+    if (isNode) {
+      process.emit('rejectionHandled', promise);
+    } else if (handler = global.onrejectionhandled) {
+      handler({ promise: promise, reason: promise._v });
+    }
+  });
+};
+var $reject = function (value) {
+  var promise = this;
+  if (promise._d) return;
+  promise._d = true;
+  promise = promise._w || promise; // unwrap
+  promise._v = value;
+  promise._s = 2;
+  if (!promise._a) promise._a = promise._c.slice();
+  notify(promise, true);
+};
+var $resolve = function (value) {
+  var promise = this;
+  var then;
+  if (promise._d) return;
+  promise._d = true;
+  promise = promise._w || promise; // unwrap
+  try {
+    if (promise === value) throw TypeError("Promise can't be resolved itself");
+    if (then = isThenable(value)) {
+      microtask(function () {
+        var wrapper = { _w: promise, _d: false }; // wrap
+        try {
+          then.call(value, ctx($resolve, wrapper, 1), ctx($reject, wrapper, 1));
+        } catch (e) {
+          $reject.call(wrapper, e);
+        }
+      });
+    } else {
+      promise._v = value;
+      promise._s = 1;
+      notify(promise, false);
+    }
+  } catch (e) {
+    $reject.call({ _w: promise, _d: false }, e); // wrap
+  }
+};
+
+// constructor polyfill
+if (!USE_NATIVE) {
+  // 25.4.3.1 Promise(executor)
+  $Promise = function Promise(executor) {
+    anInstance(this, $Promise, PROMISE, '_h');
+    aFunction(executor);
+    Internal.call(this);
+    try {
+      executor(ctx($resolve, this, 1), ctx($reject, this, 1));
+    } catch (err) {
+      $reject.call(this, err);
+    }
+  };
+  // eslint-disable-next-line no-unused-vars
+  Internal = function Promise(executor) {
+    this._c = [];             // <- awaiting reactions
+    this._a = undefined;      // <- checked in isUnhandled reactions
+    this._s = 0;              // <- state
+    this._d = false;          // <- done
+    this._v = undefined;      // <- value
+    this._h = 0;              // <- rejection state, 0 - default, 1 - handled, 2 - unhandled
+    this._n = false;          // <- notify
+  };
+  Internal.prototype = __webpack_require__("dcbc")($Promise.prototype, {
+    // 25.4.5.3 Promise.prototype.then(onFulfilled, onRejected)
+    then: function then(onFulfilled, onRejected) {
+      var reaction = newPromiseCapability(speciesConstructor(this, $Promise));
+      reaction.ok = typeof onFulfilled == 'function' ? onFulfilled : true;
+      reaction.fail = typeof onRejected == 'function' && onRejected;
+      reaction.domain = isNode ? process.domain : undefined;
+      this._c.push(reaction);
+      if (this._a) this._a.push(reaction);
+      if (this._s) notify(this, false);
+      return reaction.promise;
+    },
+    // 25.4.5.1 Promise.prototype.catch(onRejected)
+    'catch': function (onRejected) {
+      return this.then(undefined, onRejected);
+    }
+  });
+  OwnPromiseCapability = function () {
+    var promise = new Internal();
+    this.promise = promise;
+    this.resolve = ctx($resolve, promise, 1);
+    this.reject = ctx($reject, promise, 1);
+  };
+  newPromiseCapabilityModule.f = newPromiseCapability = function (C) {
+    return C === $Promise || C === Wrapper
+      ? new OwnPromiseCapability(C)
+      : newGenericPromiseCapability(C);
+  };
+}
+
+$export($export.G + $export.W + $export.F * !USE_NATIVE, { Promise: $Promise });
+__webpack_require__("7f20")($Promise, PROMISE);
+__webpack_require__("7a56")(PROMISE);
+Wrapper = __webpack_require__("8378")[PROMISE];
+
+// statics
+$export($export.S + $export.F * !USE_NATIVE, PROMISE, {
+  // 25.4.4.5 Promise.reject(r)
+  reject: function reject(r) {
+    var capability = newPromiseCapability(this);
+    var $$reject = capability.reject;
+    $$reject(r);
+    return capability.promise;
+  }
+});
+$export($export.S + $export.F * (LIBRARY || !USE_NATIVE), PROMISE, {
+  // 25.4.4.6 Promise.resolve(x)
+  resolve: function resolve(x) {
+    return promiseResolve(LIBRARY && this === Wrapper ? $Promise : this, x);
+  }
+});
+$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__("5cc5")(function (iter) {
+  $Promise.all(iter)['catch'](empty);
+})), PROMISE, {
+  // 25.4.4.1 Promise.all(iterable)
+  all: function all(iterable) {
+    var C = this;
+    var capability = newPromiseCapability(C);
+    var resolve = capability.resolve;
+    var reject = capability.reject;
+    var result = perform(function () {
+      var values = [];
+      var index = 0;
+      var remaining = 1;
+      forOf(iterable, false, function (promise) {
+        var $index = index++;
+        var alreadyCalled = false;
+        values.push(undefined);
+        remaining++;
+        C.resolve(promise).then(function (value) {
+          if (alreadyCalled) return;
+          alreadyCalled = true;
+          values[$index] = value;
+          --remaining || resolve(values);
+        }, reject);
+      });
+      --remaining || resolve(values);
+    });
+    if (result.e) reject(result.v);
+    return capability.promise;
+  },
+  // 25.4.4.4 Promise.race(iterable)
+  race: function race(iterable) {
+    var C = this;
+    var capability = newPromiseCapability(C);
+    var reject = capability.reject;
+    var result = perform(function () {
+      forOf(iterable, false, function (promise) {
+        C.resolve(promise).then(capability.resolve, reject);
+      });
+    });
+    if (result.e) reject(result.v);
+    return capability.promise;
+  }
+});
+
+
+/***/ }),
+
 /***/ "5537":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -11560,417 +12278,6 @@ var store = global[SHARED] || (global[SHARED] = {});
   copyright: '© 2020 Denis Pushkarev (zloirock.ru)'
 });
 
-
-/***/ }),
-
-/***/ "5aa5":
-/***/ (function(module, exports) {
-
-/*
- * JQuery zTree exHideNodes
- * v3.5.46
- * http://treejs.cn/
- *
- * Copyright (c) 2010 Hunter.z
- *
- * Licensed same as jquery - MIT License
- * http://www.opensource.org/licenses/mit-license.php
- *
- * Date: 2020-11-21
- */
-
-(function ($) {
-  var _setting = {
-    data: {
-      key: {
-        isHidden: "isHidden"
-      }
-    }
-  };
-  //default init node of exLib
-  var _initNode = function (setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
-      var isHidden = data.isHidden(setting, n);
-      data.isHidden(setting, n, isHidden);
-      data.initHideForExCheck(setting, n);
-    },
-    //add dom for check
-    _beforeA = function (setting, node, html) {
-    },
-    //update zTreeObj, add method of exLib
-    _zTreeTools = function (setting, zTreeTools) {
-      zTreeTools.showNodes = function (nodes, options) {
-        view.showNodes(setting, nodes, options);
-      }
-      zTreeTools.showNode = function (node, options) {
-        if (!node) {
-          return;
-        }
-        view.showNodes(setting, [node], options);
-      }
-      zTreeTools.hideNodes = function (nodes, options) {
-        view.hideNodes(setting, nodes, options);
-      }
-      zTreeTools.hideNode = function (node, options) {
-        if (!node) {
-          return;
-        }
-        view.hideNodes(setting, [node], options);
-      }
-
-      var _checkNode = zTreeTools.checkNode;
-      if (_checkNode) {
-        zTreeTools.checkNode = function (node, checked, checkTypeFlag, callbackFlag) {
-          if (!!node && !!data.isHidden(setting, node)) {
-            return;
-          }
-          _checkNode.apply(zTreeTools, arguments);
-        }
-      }
-    },
-    //method of operate data
-    _data = {
-      initHideForExCheck: function (setting, n) {
-        var isHidden = data.isHidden(setting, n);
-        if (isHidden && setting.check && setting.check.enable) {
-          if (typeof n._nocheck == "undefined") {
-            n._nocheck = !!n.nocheck
-            n.nocheck = true;
-          }
-          n.check_Child_State = -1;
-          if (view.repairParentChkClassWithSelf) {
-            view.repairParentChkClassWithSelf(setting, n);
-          }
-        }
-      },
-      initShowForExCheck: function (setting, n) {
-        var isHidden = data.isHidden(setting, n);
-        if (!isHidden && setting.check && setting.check.enable) {
-          if (typeof n._nocheck != "undefined") {
-            n.nocheck = n._nocheck;
-            delete n._nocheck;
-          }
-          if (view.setChkClass) {
-            var checkObj = $$(n, consts.id.CHECK, setting);
-            view.setChkClass(setting, checkObj, n);
-          }
-          if (view.repairParentChkClassWithSelf) {
-            view.repairParentChkClassWithSelf(setting, n);
-          }
-        }
-      }
-    },
-    //method of operate ztree dom
-    _view = {
-      clearOldFirstNode: function (setting, node) {
-        var n = node.getNextNode();
-        while (!!n) {
-          if (n.isFirstNode) {
-            n.isFirstNode = false;
-            view.setNodeLineIcos(setting, n);
-            break;
-          }
-          if (n.isLastNode) {
-            break;
-          }
-          n = n.getNextNode();
-        }
-      },
-      clearOldLastNode: function (setting, node, openFlag) {
-        var n = node.getPreNode();
-        while (!!n) {
-          if (n.isLastNode) {
-            n.isLastNode = false;
-            if (openFlag) {
-              view.setNodeLineIcos(setting, n);
-            }
-            break;
-          }
-          if (n.isFirstNode) {
-            break;
-          }
-          n = n.getPreNode();
-        }
-      },
-      makeDOMNodeMainBefore: function (html, setting, node) {
-        var isHidden = data.isHidden(setting, node);
-        html.push("<li ", (isHidden ? "style='display:none;' " : ""), "id='", node.tId, "' class='", consts.className.LEVEL, node.level, "' tabindex='0' hidefocus='true' treenode>");
-      },
-      showNode: function (setting, node, options) {
-        data.isHidden(setting, node, false);
-        data.initShowForExCheck(setting, node);
-        $$(node, setting).show();
-      },
-      showNodes: function (setting, nodes, options) {
-        if (!nodes || nodes.length == 0) {
-          return;
-        }
-        var pList = {}, i, j;
-        for (i = 0, j = nodes.length; i < j; i++) {
-          var n = nodes[i];
-          if (!pList[n.parentTId]) {
-            var pn = n.getParentNode();
-            pList[n.parentTId] = (pn === null) ? data.getRoot(setting) : n.getParentNode();
-          }
-          view.showNode(setting, n, options);
-        }
-        for (var tId in pList) {
-          var children = data.nodeChildren(setting, pList[tId]);
-          view.setFirstNodeForShow(setting, children);
-          view.setLastNodeForShow(setting, children);
-        }
-      },
-      hideNode: function (setting, node, options) {
-        data.isHidden(setting, node, true);
-        node.isFirstNode = false;
-        node.isLastNode = false;
-        data.initHideForExCheck(setting, node);
-        view.cancelPreSelectedNode(setting, node);
-        $$(node, setting).hide();
-      },
-      hideNodes: function (setting, nodes, options) {
-        if (!nodes || nodes.length == 0) {
-          return;
-        }
-        var pList = {}, i, j;
-        for (i = 0, j = nodes.length; i < j; i++) {
-          var n = nodes[i];
-          if ((n.isFirstNode || n.isLastNode) && !pList[n.parentTId]) {
-            var pn = n.getParentNode();
-            pList[n.parentTId] = (pn === null) ? data.getRoot(setting) : n.getParentNode();
-          }
-          view.hideNode(setting, n, options);
-        }
-        for (var tId in pList) {
-          var children = data.nodeChildren(setting, pList[tId]);
-          view.setFirstNodeForHide(setting, children);
-          view.setLastNodeForHide(setting, children);
-        }
-      },
-      setFirstNode: function (setting, parentNode) {
-        var children = data.nodeChildren(setting, parentNode);
-        var isHidden = data.isHidden(setting, children[0], false);
-        if (children.length > 0 && !isHidden) {
-          children[0].isFirstNode = true;
-        } else if (children.length > 0) {
-          view.setFirstNodeForHide(setting, children);
-        }
-      },
-      setLastNode: function (setting, parentNode) {
-        var children = data.nodeChildren(setting, parentNode);
-        var isHidden = data.isHidden(setting, children[0]);
-        if (children.length > 0 && !isHidden) {
-          children[children.length - 1].isLastNode = true;
-        } else if (children.length > 0) {
-          view.setLastNodeForHide(setting, children);
-        }
-      },
-      setFirstNodeForHide: function (setting, nodes) {
-        var n, i, j;
-        for (i = 0, j = nodes.length; i < j; i++) {
-          n = nodes[i];
-          if (n.isFirstNode) {
-            break;
-          }
-          var isHidden = data.isHidden(setting, n);
-          if (!isHidden && !n.isFirstNode) {
-            n.isFirstNode = true;
-            view.setNodeLineIcos(setting, n);
-            break;
-          } else {
-            n = null;
-          }
-        }
-        return n;
-      },
-      setFirstNodeForShow: function (setting, nodes) {
-        var n, i, j, first, old;
-        for (i = 0, j = nodes.length; i < j; i++) {
-          n = nodes[i];
-          var isHidden = data.isHidden(setting, n);
-          if (!first && !isHidden && n.isFirstNode) {
-            first = n;
-            break;
-          } else if (!first && !isHidden && !n.isFirstNode) {
-            n.isFirstNode = true;
-            first = n;
-            view.setNodeLineIcos(setting, n);
-          } else if (first && n.isFirstNode) {
-            n.isFirstNode = false;
-            old = n;
-            view.setNodeLineIcos(setting, n);
-            break;
-          } else {
-            n = null;
-          }
-        }
-        return {"new": first, "old": old};
-      },
-      setLastNodeForHide: function (setting, nodes) {
-        var n, i;
-        for (i = nodes.length - 1; i >= 0; i--) {
-          n = nodes[i];
-          if (n.isLastNode) {
-            break;
-          }
-          var isHidden = data.isHidden(setting, n);
-          if (!isHidden && !n.isLastNode) {
-            n.isLastNode = true;
-            view.setNodeLineIcos(setting, n);
-            break;
-          } else {
-            n = null;
-          }
-        }
-        return n;
-      },
-      setLastNodeForShow: function (setting, nodes) {
-        var n, i, j, last, old;
-        for (i = nodes.length - 1; i >= 0; i--) {
-          n = nodes[i];
-          var isHidden = data.isHidden(setting, n);
-          if (!last && !isHidden && n.isLastNode) {
-            last = n;
-            break;
-          } else if (!last && !isHidden && !n.isLastNode) {
-            n.isLastNode = true;
-            last = n;
-            view.setNodeLineIcos(setting, n);
-          } else if (last && n.isLastNode) {
-            n.isLastNode = false;
-            old = n;
-            view.setNodeLineIcos(setting, n);
-            break;
-          } else {
-            n = null;
-          }
-        }
-        return {"new": last, "old": old};
-      }
-    },
-
-    _z = {
-      view: _view,
-      data: _data
-    };
-  $.extend(true, $.fn.zTree._z, _z);
-
-  var zt = $.fn.zTree,
-    tools = zt._z.tools,
-    consts = zt.consts,
-    view = zt._z.view,
-    data = zt._z.data,
-    event = zt._z.event,
-    $$ = tools.$;
-
-  data.isHidden = function (setting, node, newIsHidden) {
-    if (!node) {
-      return false;
-    }
-    var key = setting.data.key.isHidden;
-    if (typeof newIsHidden !== 'undefined') {
-      if (typeof newIsHidden === "string") {
-        newIsHidden = tools.eqs(newIsHidden, "true");
-      }
-      newIsHidden = !!newIsHidden;
-      node[key] = newIsHidden;
-    } else if (typeof node[key] == "string"){
-      node[key] = tools.eqs(node[key], "true");
-    } else {
-      node[key] = !!node[key];
-    }
-    return node[key];
-  };
-
-  data.exSetting(_setting);
-  data.addInitNode(_initNode);
-  data.addBeforeA(_beforeA);
-  data.addZTreeTools(_zTreeTools);
-
-//	Override method in core
-  var _dInitNode = data.initNode;
-  data.initNode = function (setting, level, node, parentNode, isFirstNode, isLastNode, openFlag) {
-    var tmpPNode = (parentNode) ? parentNode : data.getRoot(setting),
-      children = tmpPNode[setting.data.key.children];
-    data.tmpHideFirstNode = view.setFirstNodeForHide(setting, children);
-    data.tmpHideLastNode = view.setLastNodeForHide(setting, children);
-    if (openFlag) {
-      view.setNodeLineIcos(setting, data.tmpHideFirstNode);
-      view.setNodeLineIcos(setting, data.tmpHideLastNode);
-    }
-    isFirstNode = (data.tmpHideFirstNode === node);
-    isLastNode = (data.tmpHideLastNode === node);
-    if (_dInitNode) _dInitNode.apply(data, arguments);
-    if (openFlag && isLastNode) {
-      view.clearOldLastNode(setting, node, openFlag);
-    }
-  };
-
-  var _makeChkFlag = data.makeChkFlag;
-  if (!!_makeChkFlag) {
-    data.makeChkFlag = function (setting, node) {
-      if (!!node && !!data.isHidden(setting, node)) {
-        return;
-      }
-      _makeChkFlag.apply(data, arguments);
-    }
-  }
-
-  var _getTreeCheckedNodes = data.getTreeCheckedNodes;
-  if (!!_getTreeCheckedNodes) {
-    data.getTreeCheckedNodes = function (setting, nodes, checked, results) {
-      if (!!nodes && nodes.length > 0) {
-        var p = nodes[0].getParentNode();
-        if (!!p && !!data.isHidden(setting, p)) {
-          return [];
-        }
-      }
-      return _getTreeCheckedNodes.apply(data, arguments);
-    }
-  }
-
-  var _getTreeChangeCheckedNodes = data.getTreeChangeCheckedNodes;
-  if (!!_getTreeChangeCheckedNodes) {
-    data.getTreeChangeCheckedNodes = function (setting, nodes, results) {
-      if (!!nodes && nodes.length > 0) {
-        var p = nodes[0].getParentNode();
-        if (!!p && !!data.isHidden(setting, p)) {
-          return [];
-        }
-      }
-      return _getTreeChangeCheckedNodes.apply(data, arguments);
-    }
-  }
-
-  var _expandCollapseSonNode = view.expandCollapseSonNode;
-  if (!!_expandCollapseSonNode) {
-    view.expandCollapseSonNode = function (setting, node, expandFlag, animateFlag, callback) {
-      if (!!node && !!data.isHidden(setting, node)) {
-        return;
-      }
-      _expandCollapseSonNode.apply(view, arguments);
-    }
-  }
-
-  var _setSonNodeCheckBox = view.setSonNodeCheckBox;
-  if (!!_setSonNodeCheckBox) {
-    view.setSonNodeCheckBox = function (setting, node, value, srcNode) {
-      if (!!node && !!data.isHidden(setting, node)) {
-        return;
-      }
-      _setSonNodeCheckBox.apply(view, arguments);
-    }
-  }
-
-  var _repairParentChkClassWithSelf = view.repairParentChkClassWithSelf;
-  if (!!_repairParentChkClassWithSelf) {
-    view.repairParentChkClassWithSelf = function (setting, node) {
-      if (!!node && !!data.isHidden(setting, node)) {
-        return;
-      }
-      _repairParentChkClassWithSelf.apply(view, arguments);
-    }
-  }
-})(jQuery);
 
 /***/ }),
 
@@ -12020,6 +12327,35 @@ $export.W = 32;  // wrap
 $export.U = 64;  // safe
 $export.R = 128; // real proto method for `library`
 module.exports = $export;
+
+
+/***/ }),
+
+/***/ "5cc5":
+/***/ (function(module, exports, __webpack_require__) {
+
+var ITERATOR = __webpack_require__("2b4c")('iterator');
+var SAFE_CLOSING = false;
+
+try {
+  var riter = [7][ITERATOR]();
+  riter['return'] = function () { SAFE_CLOSING = true; };
+  // eslint-disable-next-line no-throw-literal
+  Array.from(riter, function () { throw 2; });
+} catch (e) { /* empty */ }
+
+module.exports = function (exec, skipClosing) {
+  if (!skipClosing && !SAFE_CLOSING) return false;
+  var safe = false;
+  try {
+    var arr = [7];
+    var iter = arr[ITERATOR]();
+    iter.next = function () { return { done: safe = true }; };
+    arr[ITERATOR] = function () { return iter; };
+    exec(arr);
+  } catch (e) { /* empty */ }
+  return safe;
+};
 
 
 /***/ }),
@@ -12157,6 +12493,39 @@ module.exports = function (it, S) {
 
 /***/ }),
 
+/***/ "6b54":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+__webpack_require__("3846");
+var anObject = __webpack_require__("cb7c");
+var $flags = __webpack_require__("0bfb");
+var DESCRIPTORS = __webpack_require__("9e1e");
+var TO_STRING = 'toString';
+var $toString = /./[TO_STRING];
+
+var define = function (fn) {
+  __webpack_require__("2aba")(RegExp.prototype, TO_STRING, fn, true);
+};
+
+// 21.2.5.14 RegExp.prototype.toString()
+if (__webpack_require__("79e5")(function () { return $toString.call({ source: 'a', flags: 'b' }) != '/a/b'; })) {
+  define(function toString() {
+    var R = anObject(this);
+    return '/'.concat(R.source, '/',
+      'flags' in R ? R.flags : !DESCRIPTORS && R instanceof RegExp ? $flags.call(R) : undefined);
+  });
+// FF44- RegExp#toString has a wrong name
+} else if ($toString.name != TO_STRING) {
+  define(function toString() {
+    return $toString.call(this);
+  });
+}
+
+
+/***/ }),
+
 /***/ "7333":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -12199,6 +12568,28 @@ module.exports = !$assign || __webpack_require__("79e5")(function () {
     }
   } return T;
 } : $assign;
+
+
+/***/ }),
+
+/***/ "7514":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
+var $export = __webpack_require__("5ca1");
+var $find = __webpack_require__("0a49")(5);
+var KEY = 'find';
+var forced = true;
+// Shouldn't skip holes
+if (KEY in []) Array(1)[KEY](function () { forced = false; });
+$export($export.P + $export.F * forced, 'Array', {
+  find: function find(callbackfn /* , that = undefined */) {
+    return $find(this, callbackfn, arguments.length > 1 ? arguments[1] : undefined);
+  }
+});
+__webpack_require__("9c6c")(KEY);
 
 
 /***/ }),
@@ -12265,6 +12656,20 @@ module.exports = function (KEY) {
 
 /***/ }),
 
+/***/ "7f20":
+/***/ (function(module, exports, __webpack_require__) {
+
+var def = __webpack_require__("86cc").f;
+var has = __webpack_require__("69a8");
+var TAG = __webpack_require__("2b4c")('toStringTag');
+
+module.exports = function (it, tag, stat) {
+  if (it && !has(it = stat ? it : it.prototype, TAG)) def(it, TAG, { configurable: true, value: tag });
+};
+
+
+/***/ }),
+
 /***/ "7f7f":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -12288,11 +12693,4431 @@ NAME in FProto || __webpack_require__("9e1e") && dP(FProto, NAME, {
 
 /***/ }),
 
+/***/ "8073":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var core_js_modules_es6_array_find__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("7514");
+/* harmony import */ var core_js_modules_es6_array_find__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_array_find__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var core_js_modules_es6_promise__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("551c");
+/* harmony import */ var core_js_modules_es6_promise__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_promise__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var core_js_modules_es6_regexp_constructor__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("3b2b");
+/* harmony import */ var core_js_modules_es6_regexp_constructor__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_regexp_constructor__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var core_js_modules_es6_regexp_replace__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("a481");
+/* harmony import */ var core_js_modules_es6_regexp_replace__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_regexp_replace__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var core_js_modules_es6_regexp_split__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__("28a5");
+/* harmony import */ var core_js_modules_es6_regexp_split__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_regexp_split__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var core_js_modules_es6_regexp_to_string__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__("6b54");
+/* harmony import */ var core_js_modules_es6_regexp_to_string__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_regexp_to_string__WEBPACK_IMPORTED_MODULE_5__);
+/* harmony import */ var E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__("53ca");
+/* harmony import */ var core_js_modules_es6_function_name__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__("7f7f");
+/* harmony import */ var core_js_modules_es6_function_name__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_function_name__WEBPACK_IMPORTED_MODULE_7__);
+
+
+
+
+
+
+
+
+
+/*
+ * JQuery zTree core
+ * v3.5.46
+ * http://treejs.cn/
+ *
+ * Copyright (c) 2010 Hunter.z
+ *
+ * Licensed same as jquery - MIT License
+ * http://www.opensource.org/licenses/mit-license.php
+ *
+ * Date: 2020-11-21
+ */
+(function (_$) {
+  var settings = {},
+      roots = {},
+      caches = {},
+      //default consts of core
+  _consts = {
+    className: {
+      BUTTON: "button",
+      LEVEL: "level",
+      ICO_LOADING: 'ico_loading',
+      SWITCH: 'switch',
+      NAME: 'node_name',
+      PARENT: 'node_parent',
+      LEAF: 'node_leaf',
+      WRAPPER: 'wrapper',
+      MAIN: 'main'
+    },
+    event: {
+      NODECREATED: "ztree_nodeCreated",
+      CLICK: "ztree_click",
+      EXPAND: "ztree_expand",
+      COLLAPSE: "ztree_collapse",
+      ASYNC_SUCCESS: "ztree_async_success",
+      ASYNC_ERROR: "ztree_async_error",
+      REMOVE: "ztree_remove",
+      SELECTED: "ztree_selected",
+      UNSELECTED: "ztree_unselected"
+    },
+    id: {
+      A: "_a",
+      ICON: "_ico",
+      SPAN: "_span",
+      SWITCH: "_switch",
+      WRAPPER: "_wrapper",
+      UL: "_ul"
+    },
+    line: {
+      ROOT: "root",
+      ROOTS: "roots",
+      CENTER: "center",
+      BOTTOM: "bottom",
+      NOLINE: "noline",
+      LINE: "line"
+    },
+    folder: {
+      OPEN: "open",
+      CLOSE: "close",
+      DOCU: "docu"
+    },
+    node: {
+      CURSELECTED: "curSelectedNode"
+    },
+    ui: {
+      card: 'tree_card'
+    }
+  },
+      //default setting of core
+  _setting = {
+    treeId: "",
+    treeObj: null,
+    view: {
+      addDiyDom: null,
+      autoCancelSelected: true,
+      dblClickExpand: true,
+      expandSpeed: "fast",
+      fontCss: {},
+      nodeClasses: {},
+      nameIsHTML: false,
+      selectedMulti: true,
+      showIcon: true,
+      showLine: true,
+      showTitle: true,
+      txtSelectedEnable: false,
+      UIStyle: 'normal' // 'normal' | 'card'
+
+    },
+    data: {
+      key: {
+        isParent: "isParent",
+        children: "children",
+        name: "name",
+        title: "",
+        url: "url",
+        icon: "icon"
+      },
+      render: {
+        name: null,
+        title: null
+      },
+      simpleData: {
+        enable: false,
+        idKey: "id",
+        pIdKey: "pId",
+        rootPId: null
+      },
+      keep: {
+        parent: false,
+        leaf: false
+      }
+    },
+    async: {
+      enable: false,
+      contentType: "application/x-www-form-urlencoded",
+      type: "post",
+      dataType: "text",
+      headers: {},
+      xhrFields: {},
+      url: "",
+      autoParam: [],
+      otherParam: [],
+      dataFilter: null
+    },
+    callback: {
+      beforeAsync: null,
+      beforeClick: null,
+      beforeDblClick: null,
+      beforeRightClick: null,
+      beforeMouseDown: null,
+      beforeMouseUp: null,
+      beforeExpand: null,
+      beforeCollapse: null,
+      beforeRemove: null,
+      onAsyncError: null,
+      onAsyncSuccess: null,
+      onNodeCreated: null,
+      onClick: null,
+      onDblClick: null,
+      onRightClick: null,
+      onMouseDown: null,
+      onMouseUp: null,
+      onExpand: null,
+      onCollapse: null,
+      onRemove: null
+    }
+  },
+      //default root of core
+  //zTree use root to save full data
+  _initRoot = function _initRoot(setting) {
+    var r = data.getRoot(setting);
+
+    if (!r) {
+      r = {};
+      data.setRoot(setting, r);
+    }
+
+    data.nodeChildren(setting, r, []);
+    r.expandTriggerFlag = false;
+    r.curSelectedList = [];
+    r.noSelection = true;
+    r.createdNodes = [];
+    r.zId = 0;
+    r._ver = new Date().getTime();
+  },
+      //default cache of core
+  _initCache = function _initCache(setting) {
+    var c = data.getCache(setting);
+
+    if (!c) {
+      c = {};
+      data.setCache(setting, c);
+    }
+
+    c.nodes = [];
+    c.doms = [];
+  },
+      //default bindEvent of core
+  _bindEvent = function _bindEvent(setting) {
+    var o = setting.treeObj,
+        c = consts.event;
+    o.bind(c.NODECREATED, function (event, treeId, node) {
+      tools.apply(setting.callback.onNodeCreated, [event, treeId, node]);
+    });
+    o.bind(c.CLICK, function (event, srcEvent, treeId, node, clickFlag) {
+      tools.apply(setting.callback.onClick, [srcEvent, treeId, node, clickFlag]);
+    });
+    o.bind(c.EXPAND, function (event, treeId, node) {
+      tools.apply(setting.callback.onExpand, [event, treeId, node]);
+    });
+    o.bind(c.COLLAPSE, function (event, treeId, node) {
+      tools.apply(setting.callback.onCollapse, [event, treeId, node]);
+    });
+    o.bind(c.ASYNC_SUCCESS, function (event, treeId, node, msg) {
+      tools.apply(setting.callback.onAsyncSuccess, [event, treeId, node, msg]);
+    });
+    o.bind(c.ASYNC_ERROR, function (event, treeId, node, XMLHttpRequest, textStatus, errorThrown) {
+      tools.apply(setting.callback.onAsyncError, [event, treeId, node, XMLHttpRequest, textStatus, errorThrown]);
+    });
+    o.bind(c.REMOVE, function (event, treeId, treeNode) {
+      tools.apply(setting.callback.onRemove, [event, treeId, treeNode]);
+    });
+    o.bind(c.SELECTED, function (event, treeId, node) {
+      tools.apply(setting.callback.onSelected, [treeId, node]);
+    });
+    o.bind(c.UNSELECTED, function (event, treeId, node) {
+      tools.apply(setting.callback.onUnSelected, [treeId, node]);
+    });
+  },
+      _unbindEvent = function _unbindEvent(setting) {
+    var o = setting.treeObj,
+        c = consts.event;
+    o.unbind(c.NODECREATED).unbind(c.CLICK).unbind(c.EXPAND).unbind(c.COLLAPSE).unbind(c.ASYNC_SUCCESS).unbind(c.ASYNC_ERROR).unbind(c.REMOVE).unbind(c.SELECTED).unbind(c.UNSELECTED);
+  },
+      //default event proxy of core
+  _eventProxy = function _eventProxy(event) {
+    var target = event.target,
+        setting = data.getSetting(event.data.treeId),
+        tId = "",
+        node = null,
+        nodeEventType = "",
+        treeEventType = "",
+        nodeEventCallback = null,
+        treeEventCallback = null,
+        tmp = null;
+
+    if (tools.eqs(event.type, "mousedown")) {
+      treeEventType = "mousedown";
+    } else if (tools.eqs(event.type, "mouseup")) {
+      treeEventType = "mouseup";
+    } else if (tools.eqs(event.type, "contextmenu")) {
+      treeEventType = "contextmenu";
+    } else if (tools.eqs(event.type, "click")) {
+      if (tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.SWITCH) !== null) {
+        tId = tools.getNodeMainDom(target).id;
+        nodeEventType = "switchNode";
+      } else {
+        tmp = tools.getMDom(setting, target, [{
+          tagName: "a",
+          attrName: "treeNode" + consts.id.A
+        }]);
+
+        if (tmp) {
+          tId = tools.getNodeMainDom(tmp).id;
+          nodeEventType = "clickNode";
+        }
+      }
+    } else if (tools.eqs(event.type, "dblclick")) {
+      treeEventType = "dblclick";
+      tmp = tools.getMDom(setting, target, [{
+        tagName: "a",
+        attrName: "treeNode" + consts.id.A
+      }]);
+
+      if (tmp) {
+        tId = tools.getNodeMainDom(tmp).id;
+        nodeEventType = "switchNode";
+      }
+    }
+
+    if (treeEventType.length > 0 && tId.length == 0) {
+      tmp = tools.getMDom(setting, target, [{
+        tagName: "a",
+        attrName: "treeNode" + consts.id.A
+      }]);
+
+      if (tmp) {
+        tId = tools.getNodeMainDom(tmp).id;
+      }
+    } // event to node
+
+
+    if (tId.length > 0) {
+      node = data.getNodeCache(setting, tId);
+
+      switch (nodeEventType) {
+        case "switchNode":
+          var isParent = data.nodeIsParent(setting, node);
+
+          if (!isParent) {
+            nodeEventType = "";
+          } else if (tools.eqs(event.type, "click") || tools.eqs(event.type, "dblclick") && tools.apply(setting.view.dblClickExpand, [setting.treeId, node], setting.view.dblClickExpand)) {
+            nodeEventCallback = handler.onSwitchNode;
+          } else {
+            nodeEventType = "";
+          }
+
+          break;
+
+        case "clickNode":
+          nodeEventCallback = handler.onClickNode;
+          break;
+      }
+    } // event to zTree
+
+
+    switch (treeEventType) {
+      case "mousedown":
+        treeEventCallback = handler.onZTreeMousedown;
+        break;
+
+      case "mouseup":
+        treeEventCallback = handler.onZTreeMouseup;
+        break;
+
+      case "dblclick":
+        treeEventCallback = handler.onZTreeDblclick;
+        break;
+
+      case "contextmenu":
+        treeEventCallback = handler.onZTreeContextmenu;
+        break;
+    }
+
+    var proxyResult = {
+      stop: false,
+      node: node,
+      nodeEventType: nodeEventType,
+      nodeEventCallback: nodeEventCallback,
+      treeEventType: treeEventType,
+      treeEventCallback: treeEventCallback
+    };
+    return proxyResult;
+  },
+      //default init node of core
+  _initNode = function _initNode(setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
+    if (!n) return;
+    var r = data.getRoot(setting),
+        children = data.nodeChildren(setting, n);
+    n.level = level;
+    n.tId = setting.treeId + "_" + ++r.zId;
+    n.parentTId = parentNode ? parentNode.tId : null;
+    n.open = typeof n.open == "string" ? tools.eqs(n.open, "true") : !!n.open;
+    var isParent = data.nodeIsParent(setting, n);
+
+    if (tools.isArray(children)) {
+      data.nodeIsParent(setting, n, true);
+      n.zAsync = true;
+    } else {
+      isParent = data.nodeIsParent(setting, n, isParent);
+      n.open = isParent && !setting.async.enable ? n.open : false;
+      n.zAsync = !isParent;
+    }
+
+    n.isFirstNode = isFirstNode;
+    n.isLastNode = isLastNode;
+
+    n.getParentNode = function () {
+      return data.getNodeCache(setting, n.parentTId);
+    };
+
+    n.getPreNode = function () {
+      return data.getPreNode(setting, n);
+    };
+
+    n.getNextNode = function () {
+      return data.getNextNode(setting, n);
+    };
+
+    n.getIndex = function () {
+      return data.getNodeIndex(setting, n);
+    };
+
+    n.getPath = function () {
+      return data.getNodePath(setting, n);
+    };
+
+    n.isAjaxing = false;
+    data.fixPIdKeyValue(setting, n);
+  },
+      _init = {
+    bind: [_bindEvent],
+    unbind: [_unbindEvent],
+    caches: [_initCache],
+    nodes: [_initNode],
+    proxys: [_eventProxy],
+    roots: [_initRoot],
+    beforeA: [],
+    afterA: [],
+    innerBeforeA: [],
+    innerAfterA: [],
+    zTreeTools: []
+  },
+      //method of operate data
+  data = {
+    addNodeCache: function addNodeCache(setting, node) {
+      data.getCache(setting).nodes[data.getNodeCacheId(node.tId)] = node;
+    },
+    getNodeCacheId: function getNodeCacheId(tId) {
+      return tId.substring(tId.lastIndexOf("_") + 1);
+    },
+    addAfterA: function addAfterA(afterA) {
+      _init.afterA.push(afterA);
+    },
+    addBeforeA: function addBeforeA(beforeA) {
+      _init.beforeA.push(beforeA);
+    },
+    addInnerAfterA: function addInnerAfterA(innerAfterA) {
+      _init.innerAfterA.push(innerAfterA);
+    },
+    addInnerBeforeA: function addInnerBeforeA(innerBeforeA) {
+      _init.innerBeforeA.push(innerBeforeA);
+    },
+    addInitBind: function addInitBind(bindEvent) {
+      _init.bind.push(bindEvent);
+    },
+    addInitUnBind: function addInitUnBind(unbindEvent) {
+      _init.unbind.push(unbindEvent);
+    },
+    addInitCache: function addInitCache(initCache) {
+      _init.caches.push(initCache);
+    },
+    addInitNode: function addInitNode(initNode) {
+      _init.nodes.push(initNode);
+    },
+    addInitProxy: function addInitProxy(initProxy, isFirst) {
+      if (!!isFirst) {
+        _init.proxys.splice(0, 0, initProxy);
+      } else {
+        _init.proxys.push(initProxy);
+      }
+    },
+    addInitRoot: function addInitRoot(initRoot) {
+      _init.roots.push(initRoot);
+    },
+    addNodesData: function addNodesData(setting, parentNode, index, nodes) {
+      var children = data.nodeChildren(setting, parentNode),
+          params;
+
+      if (!children) {
+        children = data.nodeChildren(setting, parentNode, []);
+        index = -1;
+      } else if (index >= children.length) {
+        index = -1;
+      }
+
+      if (children.length > 0 && index === 0) {
+        children[0].isFirstNode = false;
+        view.setNodeLineIcos(setting, children[0]);
+      } else if (children.length > 0 && index < 0) {
+        children[children.length - 1].isLastNode = false;
+        view.setNodeLineIcos(setting, children[children.length - 1]);
+      }
+
+      data.nodeIsParent(setting, parentNode, true);
+
+      if (index < 0) {
+        data.nodeChildren(setting, parentNode, children.concat(nodes));
+      } else {
+        params = [index, 0].concat(nodes);
+        children.splice.apply(children, params);
+      }
+    },
+    addSelectedNode: function addSelectedNode(setting, node) {
+      var root = data.getRoot(setting);
+
+      if (!data.isSelectedNode(setting, node)) {
+        root.curSelectedList.push(node);
+      }
+    },
+    addCreatedNode: function addCreatedNode(setting, node) {
+      if (!!setting.callback.onNodeCreated || !!setting.view.addDiyDom) {
+        var root = data.getRoot(setting);
+        root.createdNodes.push(node);
+      }
+    },
+    addZTreeTools: function addZTreeTools(zTreeTools) {
+      _init.zTreeTools.push(zTreeTools);
+    },
+    exSetting: function exSetting(s) {
+      _$.extend(true, _setting, s);
+    },
+    fixPIdKeyValue: function fixPIdKeyValue(setting, node) {
+      if (setting.data.simpleData.enable) {
+        node[setting.data.simpleData.pIdKey] = node.parentTId ? node.getParentNode()[setting.data.simpleData.idKey] : setting.data.simpleData.rootPId;
+      }
+    },
+    getAfterA: function getAfterA(setting, node, array) {
+      for (var i = 0, j = _init.afterA.length; i < j; i++) {
+        _init.afterA[i].apply(this, arguments);
+      }
+    },
+    getBeforeA: function getBeforeA(setting, node, array) {
+      for (var i = 0, j = _init.beforeA.length; i < j; i++) {
+        _init.beforeA[i].apply(this, arguments);
+      }
+    },
+    getInnerAfterA: function getInnerAfterA(setting, node, array) {
+      for (var i = 0, j = _init.innerAfterA.length; i < j; i++) {
+        _init.innerAfterA[i].apply(this, arguments);
+      }
+    },
+    getInnerBeforeA: function getInnerBeforeA(setting, node, array) {
+      for (var i = 0, j = _init.innerBeforeA.length; i < j; i++) {
+        _init.innerBeforeA[i].apply(this, arguments);
+      }
+    },
+    getCache: function getCache(setting) {
+      return caches[setting.treeId];
+    },
+    getNodeIndex: function getNodeIndex(setting, node) {
+      if (!node) return null;
+      var p = node.parentTId ? node.getParentNode() : data.getRoot(setting),
+          children = data.nodeChildren(setting, p);
+
+      for (var i = 0, l = children.length - 1; i <= l; i++) {
+        if (children[i] === node) {
+          return i;
+        }
+      }
+
+      return -1;
+    },
+    getNextNode: function getNextNode(setting, node) {
+      if (!node) return null;
+      var p = node.parentTId ? node.getParentNode() : data.getRoot(setting),
+          children = data.nodeChildren(setting, p);
+
+      for (var i = 0, l = children.length - 1; i <= l; i++) {
+        if (children[i] === node) {
+          return i == l ? null : children[i + 1];
+        }
+      }
+
+      return null;
+    },
+    getNodeByParam: function getNodeByParam(setting, nodes, key, value) {
+      if (!nodes || !key) return null;
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+
+        if (node[key] == value) {
+          return nodes[i];
+        }
+
+        var children = data.nodeChildren(setting, node);
+        var tmp = data.getNodeByParam(setting, children, key, value);
+        if (tmp) return tmp;
+      }
+
+      return null;
+    },
+    getNodeCache: function getNodeCache(setting, tId) {
+      if (!tId) return null;
+      var n = caches[setting.treeId].nodes[data.getNodeCacheId(tId)];
+      return n ? n : null;
+    },
+    getNodePath: function getNodePath(setting, node) {
+      if (!node) return null;
+      var path;
+
+      if (node.parentTId) {
+        path = node.getParentNode().getPath();
+      } else {
+        path = [];
+      }
+
+      if (path) {
+        path.push(node);
+      }
+
+      return path;
+    },
+    getNodes: function getNodes(setting) {
+      return data.nodeChildren(setting, data.getRoot(setting));
+    },
+    getNodesByParam: function getNodesByParam(setting, nodes, key, value) {
+      if (!nodes || !key) return [];
+      var result = [];
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+
+        if (node[key] == value) {
+          result.push(node);
+        }
+
+        var children = data.nodeChildren(setting, node);
+        result = result.concat(data.getNodesByParam(setting, children, key, value));
+      }
+
+      return result;
+    },
+    getNodesByParamFuzzy: function getNodesByParamFuzzy(setting, nodes, key, value) {
+      if (!nodes || !key) return [];
+      var result = [];
+      value = value.toLowerCase();
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+
+        if (typeof node[key] == "string" && nodes[i][key].toLowerCase().indexOf(value) > -1) {
+          result.push(node);
+        }
+
+        var children = data.nodeChildren(setting, node);
+        result = result.concat(data.getNodesByParamFuzzy(setting, children, key, value));
+      }
+
+      return result;
+    },
+    getNodesByFilter: function getNodesByFilter(setting, nodes, filter, isSingle, invokeParam) {
+      if (!nodes) return isSingle ? null : [];
+      var result = isSingle ? null : [];
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+
+        if (tools.apply(filter, [node, invokeParam], false)) {
+          if (isSingle) {
+            return node;
+          }
+
+          result.push(node);
+        }
+
+        var children = data.nodeChildren(setting, node);
+        var tmpResult = data.getNodesByFilter(setting, children, filter, isSingle, invokeParam);
+
+        if (isSingle && !!tmpResult) {
+          return tmpResult;
+        }
+
+        result = isSingle ? tmpResult : result.concat(tmpResult);
+      }
+
+      return result;
+    },
+    getPreNode: function getPreNode(setting, node) {
+      if (!node) return null;
+      var p = node.parentTId ? node.getParentNode() : data.getRoot(setting),
+          children = data.nodeChildren(setting, p);
+
+      for (var i = 0, l = children.length; i < l; i++) {
+        if (children[i] === node) {
+          return i == 0 ? null : children[i - 1];
+        }
+      }
+
+      return null;
+    },
+    getRoot: function getRoot(setting) {
+      return setting ? roots[setting.treeId] : null;
+    },
+    getRoots: function getRoots() {
+      return roots;
+    },
+    getSetting: function getSetting(treeId) {
+      return settings[treeId];
+    },
+    getSettings: function getSettings() {
+      return settings;
+    },
+    getZTreeTools: function getZTreeTools(treeId) {
+      var r = this.getRoot(this.getSetting(treeId));
+      return r ? r.treeTools : null;
+    },
+    initCache: function initCache(setting) {
+      for (var i = 0, j = _init.caches.length; i < j; i++) {
+        _init.caches[i].apply(this, arguments);
+      }
+    },
+    initNode: function initNode(setting, level, node, parentNode, preNode, nextNode) {
+      for (var i = 0, j = _init.nodes.length; i < j; i++) {
+        _init.nodes[i].apply(this, arguments);
+      }
+    },
+    initRoot: function initRoot(setting) {
+      for (var i = 0, j = _init.roots.length; i < j; i++) {
+        _init.roots[i].apply(this, arguments);
+      }
+    },
+    isSelectedNode: function isSelectedNode(setting, node) {
+      var root = data.getRoot(setting);
+
+      for (var i = 0, j = root.curSelectedList.length; i < j; i++) {
+        if (node === root.curSelectedList[i]) return true;
+      }
+
+      return false;
+    },
+    nodeChildren: function nodeChildren(setting, node, newChildren) {
+      if (!node) {
+        return null;
+      }
+
+      var key = setting.data.key.children;
+
+      if (typeof newChildren !== 'undefined') {
+        node[key] = newChildren;
+      }
+
+      return node[key];
+    },
+    nodeIsParent: function nodeIsParent(setting, node, newIsParent) {
+      if (!node) {
+        return false;
+      }
+
+      var key = setting.data.key.isParent;
+
+      if (typeof newIsParent !== 'undefined') {
+        if (typeof newIsParent === "string") {
+          newIsParent = tools.eqs(newIsParent, "true");
+        }
+
+        newIsParent = !!newIsParent;
+        node[key] = newIsParent;
+      } else if (typeof node[key] == "string") {
+        node[key] = tools.eqs(node[key], "true");
+      } else {
+        node[key] = !!node[key];
+      }
+
+      return node[key];
+    },
+    nodeName: function nodeName(setting, node, newName) {
+      var key = setting.data.key.name;
+
+      if (typeof newName !== 'undefined') {
+        node[key] = newName;
+      }
+
+      var rawName = "" + node[key];
+
+      if (typeof setting.data.render.name === 'function') {
+        return setting.data.render.name.call(this, rawName, node);
+      }
+
+      return rawName;
+    },
+    nodeTitle: function nodeTitle(setting, node) {
+      var t = setting.data.key.title === "" ? setting.data.key.name : setting.data.key.title;
+      var rawTitle = "" + node[t];
+
+      if (typeof setting.data.render.title === 'function') {
+        return setting.data.render.title.call(this, rawTitle, node);
+      }
+
+      return rawTitle;
+    },
+    removeNodeCache: function removeNodeCache(setting, node) {
+      var children = data.nodeChildren(setting, node);
+
+      if (children) {
+        for (var i = 0, l = children.length; i < l; i++) {
+          data.removeNodeCache(setting, children[i]);
+        }
+      }
+
+      data.getCache(setting).nodes[data.getNodeCacheId(node.tId)] = null;
+    },
+    removeSelectedNode: function removeSelectedNode(setting, node) {
+      var root = data.getRoot(setting);
+
+      for (var i = 0, j = root.curSelectedList.length; i < j; i++) {
+        if (node === root.curSelectedList[i] || !data.getNodeCache(setting, root.curSelectedList[i].tId)) {
+          root.curSelectedList.splice(i, 1);
+          setting.treeObj.trigger(consts.event.UNSELECTED, [setting.treeId, node]);
+          i--;
+          j--;
+        }
+      }
+    },
+    setCache: function setCache(setting, cache) {
+      caches[setting.treeId] = cache;
+    },
+    setRoot: function setRoot(setting, root) {
+      roots[setting.treeId] = root;
+    },
+    setZTreeTools: function setZTreeTools(setting, zTreeTools) {
+      for (var i = 0, j = _init.zTreeTools.length; i < j; i++) {
+        _init.zTreeTools[i].apply(this, arguments);
+      }
+    },
+    transformToArrayFormat: function transformToArrayFormat(setting, nodes) {
+      if (!nodes) return [];
+      var r = [];
+
+      if (tools.isArray(nodes)) {
+        for (var i = 0, l = nodes.length; i < l; i++) {
+          var node = nodes[i];
+
+          _do(node);
+        }
+      } else {
+        _do(nodes);
+      }
+
+      return r;
+
+      function _do(_node) {
+        r.push(_node);
+        var children = data.nodeChildren(setting, _node);
+
+        if (children) {
+          r = r.concat(data.transformToArrayFormat(setting, children));
+        }
+      }
+    },
+    transformTozTreeFormat: function transformTozTreeFormat(setting, sNodes) {
+      var i,
+          l,
+          key = setting.data.simpleData.idKey,
+          parentKey = setting.data.simpleData.pIdKey;
+      if (!key || key == "" || !sNodes) return [];
+
+      if (tools.isArray(sNodes)) {
+        var r = [];
+        var tmpMap = {};
+
+        for (i = 0, l = sNodes.length; i < l; i++) {
+          tmpMap[sNodes[i][key]] = sNodes[i];
+        }
+
+        for (i = 0, l = sNodes.length; i < l; i++) {
+          var p = tmpMap[sNodes[i][parentKey]];
+
+          if (p && sNodes[i][key] != sNodes[i][parentKey]) {
+            var children = data.nodeChildren(setting, p);
+
+            if (!children) {
+              children = data.nodeChildren(setting, p, []);
+            }
+
+            children.push(sNodes[i]);
+          } else {
+            r.push(sNodes[i]);
+          }
+        }
+
+        return r;
+      } else {
+        return [sNodes];
+      }
+    }
+  },
+      //method of event proxy
+  event = {
+    bindEvent: function bindEvent(setting) {
+      for (var i = 0, j = _init.bind.length; i < j; i++) {
+        _init.bind[i].apply(this, arguments);
+      }
+    },
+    unbindEvent: function unbindEvent(setting) {
+      for (var i = 0, j = _init.unbind.length; i < j; i++) {
+        _init.unbind[i].apply(this, arguments);
+      }
+    },
+    bindTree: function bindTree(setting) {
+      var eventParam = {
+        treeId: setting.treeId
+      },
+          o = setting.treeObj;
+
+      if (!setting.view.txtSelectedEnable) {
+        // for can't select text
+        o.bind('selectstart', handler.onSelectStart).css({
+          "-moz-user-select": "-moz-none"
+        });
+      }
+
+      o.bind('click', eventParam, event.proxy);
+      o.bind('dblclick', eventParam, event.proxy);
+      o.bind('mouseover', eventParam, event.proxy);
+      o.bind('mouseout', eventParam, event.proxy);
+      o.bind('mousedown', eventParam, event.proxy);
+      o.bind('mouseup', eventParam, event.proxy);
+      o.bind('contextmenu', eventParam, event.proxy);
+    },
+    unbindTree: function unbindTree(setting) {
+      var o = setting.treeObj;
+      o.unbind('selectstart', handler.onSelectStart).unbind('click', event.proxy).unbind('dblclick', event.proxy).unbind('mouseover', event.proxy).unbind('mouseout', event.proxy).unbind('mousedown', event.proxy).unbind('mouseup', event.proxy).unbind('contextmenu', event.proxy);
+    },
+    doProxy: function doProxy(e) {
+      var results = [];
+
+      for (var i = 0, j = _init.proxys.length; i < j; i++) {
+        var proxyResult = _init.proxys[i].apply(this, arguments);
+
+        results.push(proxyResult);
+
+        if (proxyResult.stop) {
+          break;
+        }
+      }
+
+      return results;
+    },
+    proxy: function proxy(e) {
+      var setting = data.getSetting(e.data.treeId);
+      if (!tools.uCanDo(setting, e)) return true;
+      var results = event.doProxy(e),
+          r = true,
+          x = false;
+
+      for (var i = 0, l = results.length; i < l; i++) {
+        var proxyResult = results[i];
+
+        if (proxyResult.nodeEventCallback) {
+          x = true;
+          r = proxyResult.nodeEventCallback.apply(proxyResult, [e, proxyResult.node]) && r;
+        }
+
+        if (proxyResult.treeEventCallback) {
+          x = true;
+          r = proxyResult.treeEventCallback.apply(proxyResult, [e, proxyResult.node]) && r;
+        }
+      }
+
+      return r;
+    }
+  },
+      //method of event handler
+  handler = {
+    onSwitchNode: function onSwitchNode(event, node) {
+      var setting = data.getSetting(event.data.treeId);
+
+      if (node.open) {
+        if (tools.apply(setting.callback.beforeCollapse, [setting.treeId, node], true) == false) return true;
+        data.getRoot(setting).expandTriggerFlag = true;
+        view.switchNode(setting, node);
+      } else {
+        if (tools.apply(setting.callback.beforeExpand, [setting.treeId, node], true) == false) return true;
+        data.getRoot(setting).expandTriggerFlag = true;
+        view.switchNode(setting, node);
+      }
+
+      return true;
+    },
+    onClickNode: function onClickNode(event, node) {
+      var setting = data.getSetting(event.data.treeId),
+          clickFlag = setting.view.autoCancelSelected && (event.ctrlKey || event.metaKey) && data.isSelectedNode(setting, node) ? 0 : setting.view.autoCancelSelected && (event.ctrlKey || event.metaKey) && setting.view.selectedMulti ? 2 : 1;
+      if (tools.apply(setting.callback.beforeClick, [setting.treeId, node, clickFlag], true) == false) return true;
+
+      if (clickFlag === 0) {
+        view.cancelPreSelectedNode(setting, node);
+      } else {
+        view.selectNode(setting, node, clickFlag === 2);
+      }
+
+      setting.treeObj.trigger(consts.event.CLICK, [event, setting.treeId, node, clickFlag]);
+      return true;
+    },
+    onZTreeMousedown: function onZTreeMousedown(event, node) {
+      var setting = data.getSetting(event.data.treeId);
+
+      if (tools.apply(setting.callback.beforeMouseDown, [setting.treeId, node], true)) {
+        tools.apply(setting.callback.onMouseDown, [event, setting.treeId, node]);
+      }
+
+      return true;
+    },
+    onZTreeMouseup: function onZTreeMouseup(event, node) {
+      var setting = data.getSetting(event.data.treeId);
+
+      if (tools.apply(setting.callback.beforeMouseUp, [setting.treeId, node], true)) {
+        tools.apply(setting.callback.onMouseUp, [event, setting.treeId, node]);
+      }
+
+      return true;
+    },
+    onZTreeDblclick: function onZTreeDblclick(event, node) {
+      var setting = data.getSetting(event.data.treeId);
+
+      if (tools.apply(setting.callback.beforeDblClick, [setting.treeId, node], true)) {
+        tools.apply(setting.callback.onDblClick, [event, setting.treeId, node]);
+      }
+
+      return true;
+    },
+    onZTreeContextmenu: function onZTreeContextmenu(event, node) {
+      var setting = data.getSetting(event.data.treeId);
+
+      if (tools.apply(setting.callback.beforeRightClick, [setting.treeId, node], true)) {
+        tools.apply(setting.callback.onRightClick, [event, setting.treeId, node]);
+      }
+
+      return typeof setting.callback.onRightClick != "function";
+    },
+    onSelectStart: function onSelectStart(e) {
+      var n = e.originalEvent.srcElement.nodeName.toLowerCase();
+      return n === "input" || n === "textarea";
+    }
+  },
+      //method of tools for zTree
+  tools = {
+    apply: function apply(fun, param, defaultValue) {
+      if (typeof fun == "function") {
+        return fun.apply(zt, param ? param : []);
+      }
+
+      return defaultValue;
+    },
+    canAsync: function canAsync(setting, node) {
+      var children = data.nodeChildren(setting, node);
+      var isParent = data.nodeIsParent(setting, node);
+      return setting.async.enable && node && isParent && !(node.zAsync || children && children.length > 0);
+    },
+    clone: function clone(obj) {
+      if (obj === null) return null;
+      var o = tools.isArray(obj) ? [] : {};
+
+      for (var i in obj) {
+        o[i] = obj[i] instanceof Date ? new Date(obj[i].getTime()) : Object(E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(obj[i]) === "object" ? tools.clone(obj[i]) : obj[i];
+      }
+
+      return o;
+    },
+    eqs: function eqs(str1, str2) {
+      return str1.toLowerCase() === str2.toLowerCase();
+    },
+    isArray: function isArray(arr) {
+      return Object.prototype.toString.apply(arr) === "[object Array]";
+    },
+    isElement: function isElement(o) {
+      return (typeof HTMLElement === "undefined" ? "undefined" : Object(E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(HTMLElement)) === "object" ? o instanceof HTMLElement : //DOM2
+      o && Object(E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(o) === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string";
+    },
+    $: function $(node, exp, setting) {
+      if (!!exp && typeof exp != "string") {
+        setting = exp;
+        exp = "";
+      }
+
+      if (typeof node == "string") {
+        return _$(node, setting ? setting.treeObj.get(0).ownerDocument : null);
+      } else {
+        return _$("#" + node.tId + exp, setting ? setting.treeObj : null);
+      }
+    },
+    getMDom: function getMDom(setting, curDom, targetExpr) {
+      if (!curDom) return null;
+
+      while (curDom && curDom.id !== setting.treeId) {
+        for (var i = 0, l = targetExpr.length; curDom.tagName && i < l; i++) {
+          if (tools.eqs(curDom.tagName, targetExpr[i].tagName) && curDom.getAttribute(targetExpr[i].attrName) !== null) {
+            return curDom;
+          }
+        }
+
+        curDom = curDom.parentNode;
+      }
+
+      return null;
+    },
+    getNodeMainDom: function getNodeMainDom(target) {
+      return _$(target).parent("li").get(0) || _$(target).parentsUntil("li").parent().get(0);
+    },
+    isChildOrSelf: function isChildOrSelf(dom, parentId) {
+      return _$(dom).closest("#" + parentId).length > 0;
+    },
+    uCanDo: function uCanDo(setting, e) {
+      return true;
+    }
+  },
+      //method of operate ztree dom
+  view = {
+    addNodes: function addNodes(setting, parentNode, index, newNodes, isSilent) {
+      var isParent = data.nodeIsParent(setting, parentNode);
+
+      if (setting.data.keep.leaf && parentNode && !isParent) {
+        return;
+      }
+
+      if (!tools.isArray(newNodes)) {
+        newNodes = [newNodes];
+      }
+
+      if (setting.data.simpleData.enable) {
+        newNodes = data.transformTozTreeFormat(setting, newNodes);
+      }
+
+      if (parentNode) {
+        var target_switchObj = $$(parentNode, consts.id.SWITCH, setting),
+            target_icoObj = $$(parentNode, consts.id.ICON, setting),
+            target_ulObj = $$(parentNode, consts.id.UL, setting);
+
+        if (!parentNode.open) {
+          view.replaceSwitchClass(parentNode, target_switchObj, consts.folder.CLOSE);
+          view.replaceIcoClass(parentNode, target_icoObj, consts.folder.CLOSE);
+          parentNode.open = false;
+          target_ulObj.css({
+            "display": "none"
+          });
+        }
+
+        data.addNodesData(setting, parentNode, index, newNodes);
+        view.createNodes(setting, parentNode.level + 1, newNodes, parentNode, index);
+
+        if (!isSilent) {
+          view.expandCollapseParentNode(setting, parentNode, true);
+        }
+      } else {
+        data.addNodesData(setting, data.getRoot(setting), index, newNodes);
+        view.createNodes(setting, 0, newNodes, null, index);
+      }
+    },
+    appendNodes: function appendNodes(setting, level, nodes, parentNode, index, initFlag, openFlag) {
+      if (!nodes) return [];
+      var html = [];
+      var tmpPNode = parentNode ? parentNode : data.getRoot(setting),
+          tmpPChild = data.nodeChildren(setting, tmpPNode),
+          isFirstNode,
+          isLastNode;
+
+      if (!tmpPChild || index >= tmpPChild.length - nodes.length) {
+        index = -1;
+      }
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+
+        if (initFlag) {
+          isFirstNode = (index === 0 || tmpPChild.length == nodes.length) && i == 0;
+          isLastNode = index < 0 && i == nodes.length - 1;
+          data.initNode(setting, level, node, parentNode, isFirstNode, isLastNode, openFlag);
+          data.addNodeCache(setting, node);
+        }
+
+        var isParent = data.nodeIsParent(setting, node);
+        var childHtml = [];
+        var children = data.nodeChildren(setting, node);
+
+        if (children && children.length > 0) {
+          //make child html first, because checkType
+          childHtml = view.appendNodes(setting, level + 1, children, node, -1, initFlag, openFlag && node.open);
+        }
+
+        if (openFlag) {
+          view.makeDOMNodeMainBefore(html, setting, node, isParent);
+          view.makeDOMNodeMainWrapperBefore(html, setting, node);
+          if (setting.view.UIStyle !== 'card') view.makeDOMNodeLine(html, setting, node);
+          data.getBeforeA(setting, node, html);
+          view.makeDOMNodeNameBefore(html, setting, node);
+          data.getInnerBeforeA(setting, node, html);
+          view.makeDOMNodeIcon(html, setting, node);
+          data.getInnerAfterA(setting, node, html);
+          view.makeDOMNodeNameAfter(html, setting, node);
+          data.getAfterA(setting, node, html);
+          if (setting.view.UIStyle === 'card') view.makeDOMNodeLine(html, setting, node);
+          view.makeDOMNodeMainWrapperAfter(html, setting, node);
+
+          if (isParent && node.open) {
+            view.makeUlHtml(setting, node, html, childHtml.join(''));
+          }
+
+          view.makeDOMNodeMainAfter(html, setting, node);
+          data.addCreatedNode(setting, node);
+        }
+      }
+
+      return html;
+    },
+    appendParentULDom: function appendParentULDom(setting, node) {
+      var html = [],
+          nObj = $$(node, setting);
+
+      if (!nObj.get(0) && !!node.parentTId) {
+        view.appendParentULDom(setting, node.getParentNode());
+        nObj = $$(node, setting);
+      }
+
+      var ulObj = $$(node, consts.id.UL, setting);
+
+      if (ulObj.get(0)) {
+        ulObj.remove();
+      }
+
+      var children = data.nodeChildren(setting, node),
+          childHtml = view.appendNodes(setting, node.level + 1, children, node, -1, false, true);
+      view.makeUlHtml(setting, node, html, childHtml.join(''));
+      nObj.append(html.join(''));
+    },
+    asyncNode: function asyncNode(setting, node, isSilent, callback) {
+      var i, l;
+      var isParent = data.nodeIsParent(setting, node);
+
+      if (node && !isParent) {
+        tools.apply(callback);
+        return false;
+      } else if (node && node.isAjaxing) {
+        return false;
+      } else if (tools.apply(setting.callback.beforeAsync, [setting.treeId, node], true) == false) {
+        tools.apply(callback);
+        return false;
+      }
+
+      if (node) {
+        node.isAjaxing = true;
+        var icoObj = $$(node, consts.id.ICON, setting);
+        icoObj.attr({
+          "style": "",
+          "class": consts.className.BUTTON + " " + consts.className.ICO_LOADING
+        });
+      }
+
+      var tmpParam = {};
+      var autoParam = tools.apply(setting.async.autoParam, [setting.treeId, node], setting.async.autoParam);
+
+      for (i = 0, l = autoParam.length; node && i < l; i++) {
+        var pKey = autoParam[i].split("="),
+            spKey = pKey;
+
+        if (pKey.length > 1) {
+          spKey = pKey[1];
+          pKey = pKey[0];
+        }
+
+        tmpParam[spKey] = node[pKey];
+      }
+
+      var otherParam = tools.apply(setting.async.otherParam, [setting.treeId, node], setting.async.otherParam);
+
+      if (tools.isArray(otherParam)) {
+        for (i = 0, l = otherParam.length; i < l; i += 2) {
+          tmpParam[otherParam[i]] = otherParam[i + 1];
+        }
+      } else {
+        for (var p in otherParam) {
+          tmpParam[p] = otherParam[p];
+        }
+      }
+
+      var _tmpV = data.getRoot(setting)._ver;
+
+      _$.ajax({
+        contentType: setting.async.contentType,
+        cache: false,
+        type: setting.async.type,
+        url: tools.apply(setting.async.url, [setting.treeId, node], setting.async.url),
+        data: setting.async.contentType.indexOf('application/json') > -1 ? JSON.stringify(tmpParam) : tmpParam,
+        dataType: setting.async.dataType,
+        headers: setting.async.headers,
+        xhrFields: setting.async.xhrFields,
+        success: function success(msg) {
+          if (_tmpV != data.getRoot(setting)._ver) {
+            return;
+          }
+
+          var newNodes = [];
+
+          try {
+            if (!msg || msg.length == 0) {
+              newNodes = [];
+            } else if (typeof msg == "string") {
+              newNodes = eval("(" + msg + ")");
+            } else {
+              newNodes = msg;
+            }
+          } catch (err) {
+            newNodes = msg;
+          }
+
+          if (node) {
+            node.isAjaxing = null;
+            node.zAsync = true;
+          }
+
+          view.setNodeLineIcos(setting, node);
+
+          if (newNodes && newNodes !== "") {
+            newNodes = tools.apply(setting.async.dataFilter, [setting.treeId, node, newNodes], newNodes);
+            view.addNodes(setting, node, -1, !!newNodes ? tools.clone(newNodes) : [], !!isSilent);
+          } else {
+            view.addNodes(setting, node, -1, [], !!isSilent);
+          }
+
+          setting.treeObj.trigger(consts.event.ASYNC_SUCCESS, [setting.treeId, node, msg]);
+          tools.apply(callback);
+        },
+        error: function error(XMLHttpRequest, textStatus, errorThrown) {
+          if (_tmpV != data.getRoot(setting)._ver) {
+            return;
+          }
+
+          if (node) node.isAjaxing = null;
+          view.setNodeLineIcos(setting, node);
+          setting.treeObj.trigger(consts.event.ASYNC_ERROR, [setting.treeId, node, XMLHttpRequest, textStatus, errorThrown]);
+        }
+      });
+
+      return true;
+    },
+    cancelPreSelectedNode: function cancelPreSelectedNode(setting, node, excludeNode) {
+      var list = data.getRoot(setting).curSelectedList,
+          i,
+          n;
+
+      for (i = list.length - 1; i >= 0; i--) {
+        n = list[i];
+
+        if (node === n || !node && (!excludeNode || excludeNode !== n)) {
+          $$(n, consts.id.A, setting).removeClass(consts.node.CURSELECTED);
+          $$(n, '', setting).removeClass(consts.node.CURSELECTED);
+
+          if (node) {
+            data.removeSelectedNode(setting, node);
+            break;
+          } else {
+            list.splice(i, 1);
+            setting.treeObj.trigger(consts.event.UNSELECTED, [setting.treeId, n]);
+          }
+        }
+      }
+    },
+    createNodeCallback: function createNodeCallback(setting) {
+      if (!!setting.callback.onNodeCreated || !!setting.view.addDiyDom) {
+        var root = data.getRoot(setting);
+
+        while (root.createdNodes.length > 0) {
+          var node = root.createdNodes.shift();
+          tools.apply(setting.view.addDiyDom, [setting.treeId, node]);
+
+          if (!!setting.callback.onNodeCreated) {
+            setting.treeObj.trigger(consts.event.NODECREATED, [setting.treeId, node]);
+          }
+        }
+      }
+    },
+    createNodes: function createNodes(setting, level, nodes, parentNode, index) {
+      if (!nodes || nodes.length == 0) return;
+      var root = data.getRoot(setting),
+          openFlag = !parentNode || parentNode.open || !!$$(data.nodeChildren(setting, parentNode)[0], setting).get(0);
+      root.createdNodes = [];
+      var zTreeHtml = view.appendNodes(setting, level, nodes, parentNode, index, true, openFlag),
+          parentObj,
+          nextObj;
+
+      if (!parentNode) {
+        parentObj = setting.treeObj; //setting.treeObj.append(zTreeHtml.join(''));
+      } else {
+        var ulObj = $$(parentNode, consts.id.UL, setting);
+
+        if (ulObj.get(0)) {
+          parentObj = ulObj; //ulObj.append(zTreeHtml.join(''));
+        }
+      }
+
+      if (parentObj) {
+        if (index >= 0) {
+          nextObj = parentObj.children()[index];
+        }
+
+        if (index >= 0 && nextObj) {
+          _$(nextObj).before(zTreeHtml.join(''));
+        } else {
+          parentObj.append(zTreeHtml.join(''));
+        }
+      }
+
+      view.createNodeCallback(setting);
+    },
+    destroy: function destroy(setting) {
+      if (!setting) return;
+      data.initCache(setting);
+      data.initRoot(setting);
+      event.unbindTree(setting);
+      event.unbindEvent(setting);
+      setting.treeObj.empty();
+      delete settings[setting.treeId];
+    },
+    expandCollapseNode: function expandCollapseNode(setting, node, expandFlag, animateFlag, callback) {
+      var root = data.getRoot(setting);
+
+      var tmpCb, _callback;
+
+      if (!node) {
+        tools.apply(callback, []);
+        return;
+      }
+
+      var children = data.nodeChildren(setting, node);
+      var isParent = data.nodeIsParent(setting, node);
+
+      if (root.expandTriggerFlag) {
+        _callback = callback;
+
+        tmpCb = function tmpCb() {
+          if (_callback) _callback();
+
+          if (node.open) {
+            setting.treeObj.trigger(consts.event.EXPAND, [setting.treeId, node]);
+          } else {
+            setting.treeObj.trigger(consts.event.COLLAPSE, [setting.treeId, node]);
+          }
+        };
+
+        callback = tmpCb;
+        root.expandTriggerFlag = false;
+      }
+
+      if (!node.open && isParent && (!$$(node, consts.id.UL, setting).get(0) || children && children.length > 0 && !$$(children[0], setting).get(0))) {
+        view.appendParentULDom(setting, node);
+        view.createNodeCallback(setting);
+      }
+
+      if (node.open == expandFlag) {
+        tools.apply(callback, []);
+        return;
+      }
+
+      var ulObj = $$(node, consts.id.UL, setting),
+          switchObj = $$(node, consts.id.SWITCH, setting),
+          liObj = $$(node, '', setting),
+          icoObj = $$(node, consts.id.ICON, setting);
+
+      if (isParent) {
+        node.open = !node.open;
+
+        if (node.iconOpen && node.iconClose) {
+          icoObj.attr("style", view.makeNodeIcoStyle(setting, node));
+        }
+
+        if (node.open) {
+          view.replaceSwitchClass(node, liObj, consts.folder.OPEN, consts.className.MAIN);
+          view.replaceSwitchClass(node, switchObj, consts.folder.OPEN);
+          view.replaceIcoClass(node, icoObj, consts.folder.OPEN);
+
+          if (animateFlag == false || setting.view.expandSpeed == "") {
+            ulObj.show();
+            tools.apply(callback, []);
+          } else {
+            if (children && children.length > 0) {
+              ulObj.slideDown(setting.view.expandSpeed, callback);
+            } else {
+              ulObj.show();
+              tools.apply(callback, []);
+            }
+          }
+        } else {
+          view.replaceSwitchClass(node, liObj, consts.folder.CLOSE, consts.className.MAIN);
+          view.replaceSwitchClass(node, switchObj, consts.folder.CLOSE);
+          view.replaceIcoClass(node, icoObj, consts.folder.CLOSE);
+
+          if (animateFlag == false || setting.view.expandSpeed == "" || !(children && children.length > 0)) {
+            ulObj.hide();
+            tools.apply(callback, []);
+          } else {
+            ulObj.slideUp(setting.view.expandSpeed, callback);
+          }
+        }
+      } else {
+        tools.apply(callback, []);
+      }
+    },
+    expandCollapseParentNode: function expandCollapseParentNode(setting, node, expandFlag, animateFlag, callback) {
+      if (!node) return;
+
+      if (!node.parentTId) {
+        view.expandCollapseNode(setting, node, expandFlag, animateFlag, callback);
+        return;
+      } else {
+        view.expandCollapseNode(setting, node, expandFlag, animateFlag);
+      }
+
+      if (node.parentTId) {
+        view.expandCollapseParentNode(setting, node.getParentNode(), expandFlag, animateFlag, callback);
+      }
+    },
+    expandCollapseSonNode: function expandCollapseSonNode(setting, node, expandFlag, animateFlag, callback) {
+      var root = data.getRoot(setting),
+          treeNodes = node ? data.nodeChildren(setting, node) : data.nodeChildren(setting, root),
+          selfAnimateSign = node ? false : animateFlag,
+          expandTriggerFlag = data.getRoot(setting).expandTriggerFlag;
+      data.getRoot(setting).expandTriggerFlag = false;
+
+      if (treeNodes) {
+        for (var i = 0, l = treeNodes.length; i < l; i++) {
+          if (treeNodes[i]) view.expandCollapseSonNode(setting, treeNodes[i], expandFlag, selfAnimateSign);
+        }
+      }
+
+      data.getRoot(setting).expandTriggerFlag = expandTriggerFlag;
+      view.expandCollapseNode(setting, node, expandFlag, animateFlag, callback);
+    },
+    isSelectedNode: function isSelectedNode(setting, node) {
+      if (!node) {
+        return false;
+      }
+
+      var list = data.getRoot(setting).curSelectedList,
+          i;
+
+      for (i = list.length - 1; i >= 0; i--) {
+        if (node === list[i]) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    makeDOMNodeIcon: function makeDOMNodeIcon(html, setting, node) {
+      var nameStr = data.nodeName(setting, node),
+          name = setting.view.nameIsHTML ? nameStr : nameStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      html.push("<span id='", node.tId, consts.id.ICON, "' title='' treeNode", consts.id.ICON, " class='", view.makeNodeIcoClass(setting, node), "' style='", view.makeNodeIcoStyle(setting, node), "'></span><span id='", node.tId, consts.id.SPAN, "' class='", consts.className.NAME, "'>", name, "</span>");
+    },
+    makeDOMNodeLine: function makeDOMNodeLine(html, setting, node) {
+      html.push("<span id='", node.tId, consts.id.SWITCH, "' title='' class='", view.makeNodeLineClass(setting, node), "' treeNode", consts.id.SWITCH, "></span>");
+    },
+    makeDOMNodeMainAfter: function makeDOMNodeMainAfter(html, setting, node) {
+      html.push("</li>");
+    },
+    makeDOMNodeMainBefore: function makeDOMNodeMainBefore(html, setting, node, isParent) {
+      html.push("<li id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, ' ', consts.className.MAIN, '_', node.open ? consts.folder.OPEN : consts.folder.CLOSE, "' tabindex='0' hidefocus='true' treenode>");
+    },
+    makeDOMNodeMainWrapperAfter: function makeDOMNodeMainWrapperAfter(html, setting, node) {
+      html.push("</div>");
+    },
+    makeDOMNodeMainWrapperBefore: function makeDOMNodeMainWrapperBefore(html, setting, node) {
+      html.push("<div id='", node.tId, consts.id.WRAPPER, "' class='", consts.className.LEVEL, node.level, '\' treenode', consts.id.WRAPPER, ">");
+    },
+    makeDOMNodeNameAfter: function makeDOMNodeNameAfter(html, setting, node) {
+      html.push("</a>");
+    },
+    makeDOMNodeNameBefore: function makeDOMNodeNameBefore(html, setting, node) {
+      var title = data.nodeTitle(setting, node),
+          url = view.makeNodeUrl(setting, node),
+          fontcss = view.makeNodeFontCss(setting, node),
+          nodeClasses = view.makeNodeClasses(setting, node),
+          fontStyle = [];
+
+      for (var f in fontcss) {
+        fontStyle.push(f, ":", fontcss[f], ";");
+      }
+
+      html.push("<a id='", node.tId, consts.id.A, "' class='", consts.className.LEVEL, node.level, nodeClasses.add ? ' ' + nodeClasses.add.join(' ') : '', "' treeNode", consts.id.A, node.click ? " onclick=\"" + node.click + "\"" : "", url != null && url.length > 0 ? " href='" + url + "'" : "", " target='", view.makeNodeTarget(node), "' style='", fontStyle.join(''), "'");
+
+      if (tools.apply(setting.view.showTitle, [setting.treeId, node], setting.view.showTitle) && title) {
+        html.push("title='", title.replace(/'/g, "&#39;").replace(/</g, '&lt;').replace(/>/g, '&gt;'), "'");
+      }
+
+      html.push(">");
+    },
+    makeNodeFontCss: function makeNodeFontCss(setting, node) {
+      var fontCss = tools.apply(setting.view.fontCss, [setting.treeId, node], setting.view.fontCss);
+      return fontCss && typeof fontCss != "function" ? fontCss : {};
+    },
+    makeNodeClasses: function makeNodeClasses(setting, node) {
+      var classes = tools.apply(setting.view.nodeClasses, [setting.treeId, node], setting.view.nodeClasses);
+      return classes && typeof classes !== "function" ? classes : {
+        add: [],
+        remove: []
+      };
+    },
+    makeNodeIcoClass: function makeNodeIcoClass(setting, node) {
+      var icoCss = ["ico"];
+
+      if (!node.isAjaxing) {
+        var isParent = data.nodeIsParent(setting, node);
+        icoCss[0] = (node.iconSkin ? node.iconSkin + "_" : "") + icoCss[0];
+
+        if (isParent) {
+          icoCss.push(node.open ? consts.folder.OPEN : consts.folder.CLOSE);
+        } else {
+          icoCss.push(consts.folder.DOCU);
+        }
+      }
+
+      return consts.className.BUTTON + " " + icoCss.join('_');
+    },
+    makeNodeIcoStyle: function makeNodeIcoStyle(setting, node) {
+      var icoStyle = [];
+
+      if (!node.isAjaxing) {
+        var isParent = data.nodeIsParent(setting, node);
+        var icon = isParent && node.iconOpen && node.iconClose ? node.open ? node.iconOpen : node.iconClose : node[setting.data.key.icon];
+        if (icon) icoStyle.push("background:url(", icon, ") 0 0 no-repeat;");
+
+        if (setting.view.showIcon == false || !tools.apply(setting.view.showIcon, [setting.treeId, node], true)) {
+          icoStyle.push("display:none;");
+        }
+      }
+
+      return icoStyle.join('');
+    },
+    makeNodeLineClass: function makeNodeLineClass(setting, node) {
+      var lineClass = [];
+
+      if (setting.view.showLine) {
+        if (node.level == 0 && node.isFirstNode && node.isLastNode) {
+          lineClass.push(consts.line.ROOT);
+        } else if (node.level == 0 && node.isFirstNode) {
+          lineClass.push(consts.line.ROOTS);
+        } else if (node.isLastNode) {
+          lineClass.push(consts.line.BOTTOM);
+        } else {
+          lineClass.push(consts.line.CENTER);
+        }
+      } else {
+        lineClass.push(consts.line.NOLINE);
+      }
+
+      if (data.nodeIsParent(setting, node)) {
+        lineClass.push(node.open ? consts.folder.OPEN : consts.folder.CLOSE);
+      } else {
+        lineClass.push(consts.folder.DOCU);
+      }
+
+      return view.makeNodeLineClassEx(node) + lineClass.join('_');
+    },
+    makeNodeLineClassEx: function makeNodeLineClassEx(node) {
+      return consts.className.BUTTON + " " + consts.className.LEVEL + node.level + " " + consts.className.SWITCH + " ";
+    },
+    makeNodeTarget: function makeNodeTarget(node) {
+      return node.target || "_blank";
+    },
+    makeNodeUrl: function makeNodeUrl(setting, node) {
+      var urlKey = setting.data.key.url;
+      return node[urlKey] ? node[urlKey] : null;
+    },
+    makeUlHtml: function makeUlHtml(setting, node, html, content) {
+      html.push("<ul id='", node.tId, consts.id.UL, "' class='", consts.className.LEVEL, node.level, " ", view.makeUlLineClass(setting, node), "' style='display:", node.open ? "block" : "none", "'>");
+      html.push(content);
+      html.push("</ul>");
+    },
+    makeUlLineClass: function makeUlLineClass(setting, node) {
+      return setting.view.showLine && !node.isLastNode ? consts.line.LINE : "";
+    },
+    removeChildNodes: function removeChildNodes(setting, node) {
+      if (!node) return;
+      var nodes = data.nodeChildren(setting, node);
+      if (!nodes) return;
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        data.removeNodeCache(setting, nodes[i]);
+      }
+
+      data.removeSelectedNode(setting);
+      delete node[setting.data.key.children];
+
+      if (!setting.data.keep.parent) {
+        data.nodeIsParent(setting, node, false);
+        node.open = false;
+        var tmp_switchObj = $$(node, consts.id.SWITCH, setting),
+            tmp_icoObj = $$(node, consts.id.ICON, setting);
+        view.replaceSwitchClass(node, tmp_switchObj, consts.folder.DOCU);
+        view.replaceIcoClass(node, tmp_icoObj, consts.folder.DOCU);
+        $$(node, consts.id.UL, setting).remove();
+      } else {
+        $$(node, consts.id.UL, setting).empty();
+      }
+    },
+    scrollIntoView: function scrollIntoView(setting, dom) {
+      if (!dom) {
+        return;
+      } // support IE 7 / 8
+
+
+      if (typeof Element === 'undefined' || typeof HTMLElement === 'undefined') {
+        var contRect = setting.treeObj.get(0).getBoundingClientRect(),
+            findMeRect = dom.getBoundingClientRect();
+
+        if (findMeRect.top < contRect.top || findMeRect.bottom > contRect.bottom || findMeRect.right > contRect.right || findMeRect.left < contRect.left) {
+          dom.scrollIntoView();
+        }
+
+        return;
+      } // CC-BY jocki84@googlemail.com, https://gist.github.com/jocki84/6ffafd003387179a988e
+
+
+      if (!Element.prototype.scrollIntoViewIfNeeded) {
+        Element.prototype.scrollIntoViewIfNeeded = function (centerIfNeeded) {
+          "use strict";
+
+          function makeRange(start, length) {
+            return {
+              "start": start,
+              "length": length,
+              "end": start + length
+            };
+          }
+
+          function coverRange(inner, outer) {
+            if (false === centerIfNeeded || outer.start < inner.end && inner.start < outer.end) {
+              return Math.max(inner.end - outer.length, Math.min(outer.start, inner.start));
+            }
+
+            return (inner.start + inner.end - outer.length) / 2;
+          }
+
+          function makePoint(x, y) {
+            return {
+              "x": x,
+              "y": y,
+              "translate": function translate(dX, dY) {
+                return makePoint(x + dX, y + dY);
+              }
+            };
+          }
+
+          function absolute(elem, pt) {
+            while (elem) {
+              pt = pt.translate(elem.offsetLeft, elem.offsetTop);
+              elem = elem.offsetParent;
+            }
+
+            return pt;
+          }
+
+          var target = absolute(this, makePoint(0, 0)),
+              extent = makePoint(this.offsetWidth, this.offsetHeight),
+              elem = this.parentNode,
+              origin;
+
+          while (elem instanceof HTMLElement) {
+            // Apply desired scroll amount.
+            origin = absolute(elem, makePoint(elem.clientLeft, elem.clientTop));
+            elem.scrollLeft = coverRange(makeRange(target.x - origin.x, extent.x), makeRange(elem.scrollLeft, elem.clientWidth));
+            elem.scrollTop = coverRange(makeRange(target.y - origin.y, extent.y), makeRange(elem.scrollTop, elem.clientHeight)); // Determine actual scroll amount by reading back scroll properties.
+
+            target = target.translate(-elem.scrollLeft, -elem.scrollTop);
+            elem = elem.parentNode;
+          }
+        };
+      }
+
+      dom.scrollIntoViewIfNeeded();
+    },
+    setFirstNode: function setFirstNode(setting, parentNode) {
+      var children = data.nodeChildren(setting, parentNode);
+
+      if (children.length > 0) {
+        children[0].isFirstNode = true;
+      }
+    },
+    setLastNode: function setLastNode(setting, parentNode) {
+      var children = data.nodeChildren(setting, parentNode);
+
+      if (children.length > 0) {
+        children[children.length - 1].isLastNode = true;
+      }
+    },
+    removeNode: function removeNode(setting, node) {
+      var root = data.getRoot(setting),
+          parentNode = node.parentTId ? node.getParentNode() : root;
+      node.isFirstNode = false;
+      node.isLastNode = false;
+
+      node.getPreNode = function () {
+        return null;
+      };
+
+      node.getNextNode = function () {
+        return null;
+      };
+
+      if (!data.getNodeCache(setting, node.tId)) {
+        return;
+      }
+
+      $$(node, setting).remove();
+      data.removeNodeCache(setting, node);
+      data.removeSelectedNode(setting, node);
+      var children = data.nodeChildren(setting, parentNode);
+
+      for (var i = 0, l = children.length; i < l; i++) {
+        if (children[i].tId == node.tId) {
+          children.splice(i, 1);
+          break;
+        }
+      }
+
+      view.setFirstNode(setting, parentNode);
+      view.setLastNode(setting, parentNode);
+      var tmp_ulObj,
+          tmp_switchObj,
+          tmp_icoObj,
+          childLength = children.length; //repair nodes old parent
+
+      if (!setting.data.keep.parent && childLength == 0) {
+        //old parentNode has no child nodes
+        data.nodeIsParent(setting, parentNode, false);
+        parentNode.open = false;
+        delete parentNode[setting.data.key.children];
+        tmp_ulObj = $$(parentNode, consts.id.UL, setting);
+        tmp_switchObj = $$(parentNode, consts.id.SWITCH, setting);
+        tmp_icoObj = $$(parentNode, consts.id.ICON, setting);
+        view.replaceSwitchClass(parentNode, tmp_switchObj, consts.folder.DOCU);
+        view.replaceIcoClass(parentNode, tmp_icoObj, consts.folder.DOCU);
+        tmp_ulObj.css("display", "none");
+      } else if (setting.view.showLine && childLength > 0) {
+        //old parentNode has child nodes
+        var newLast = children[childLength - 1];
+        tmp_ulObj = $$(newLast, consts.id.UL, setting);
+        tmp_switchObj = $$(newLast, consts.id.SWITCH, setting);
+        tmp_icoObj = $$(newLast, consts.id.ICON, setting);
+
+        if (parentNode == root) {
+          if (children.length == 1) {
+            //node was root, and ztree has only one root after move node
+            view.replaceSwitchClass(newLast, tmp_switchObj, consts.line.ROOT);
+          } else {
+            var tmp_first_switchObj = $$(children[0], consts.id.SWITCH, setting);
+            view.replaceSwitchClass(children[0], tmp_first_switchObj, consts.line.ROOTS);
+            view.replaceSwitchClass(newLast, tmp_switchObj, consts.line.BOTTOM);
+          }
+        } else {
+          view.replaceSwitchClass(newLast, tmp_switchObj, consts.line.BOTTOM);
+        }
+
+        tmp_ulObj.removeClass(consts.line.LINE);
+      }
+    },
+    replaceIcoClass: function replaceIcoClass(node, obj, newName) {
+      if (!obj || node.isAjaxing) return;
+      var tmpName = obj.attr("class");
+      if (tmpName == undefined) return;
+      var tmpList = tmpName.split("_");
+
+      switch (newName) {
+        case consts.folder.OPEN:
+        case consts.folder.CLOSE:
+        case consts.folder.DOCU:
+          tmpList[tmpList.length - 1] = newName;
+          break;
+      }
+
+      obj.attr("class", tmpList.join("_"));
+    },
+    replaceSwitchClass: function replaceSwitchClass(node, obj, newName, className) {
+      if (!obj) return;
+      var tmpName = obj.attr("class");
+      if (tmpName == undefined) return;
+      var tmpList = tmpName.split("_");
+
+      switch (newName) {
+        case consts.line.ROOT:
+        case consts.line.ROOTS:
+        case consts.line.CENTER:
+        case consts.line.BOTTOM:
+        case consts.line.NOLINE:
+          tmpList[0] = view.makeNodeLineClassEx(node) + newName;
+          break;
+
+        case consts.folder.OPEN:
+        case consts.folder.CLOSE:
+        case consts.folder.DOCU:
+          tmpList[1] = newName;
+          break;
+      }
+
+      if (className) {
+        var reg = new RegExp(className + '_[\\S]+');
+        obj.attr('class', tmpName.replace(reg, className + '_' + newName));
+      } else {
+        obj.attr('class', tmpList.join('_'));
+      }
+
+      if (newName !== consts.folder.DOCU) {
+        obj.removeAttr("disabled");
+      } else {
+        obj.attr("disabled", "disabled");
+      }
+    },
+    selectNode: function selectNode(setting, node, addFlag) {
+      if (!addFlag) {
+        view.cancelPreSelectedNode(setting, null, node);
+      }
+
+      $$(node, consts.id.A, setting).addClass(consts.node.CURSELECTED);
+      $$(node, '', setting).addClass(consts.node.CURSELECTED);
+      data.addSelectedNode(setting, node);
+      setting.treeObj.trigger(consts.event.SELECTED, [setting.treeId, node]);
+    },
+    setNodeFontCss: function setNodeFontCss(setting, treeNode) {
+      var aObj = $$(treeNode, consts.id.A, setting),
+          fontCss = view.makeNodeFontCss(setting, treeNode);
+
+      if (fontCss) {
+        aObj.css(fontCss);
+      }
+    },
+    setNodeClasses: function setNodeClasses(setting, treeNode) {
+      var aObj = $$(treeNode, consts.id.A, setting),
+          classes = view.makeNodeClasses(setting, treeNode);
+
+      if ('add' in classes && classes.add.length) {
+        aObj.addClass(classes.add.join(' '));
+      }
+
+      if ('remove' in classes && classes.remove.length) {
+        aObj.removeClass(classes.remove.join(' '));
+      }
+    },
+    setNodeLineIcos: function setNodeLineIcos(setting, node) {
+      if (!node) return;
+      var switchObj = $$(node, consts.id.SWITCH, setting),
+          ulObj = $$(node, consts.id.UL, setting),
+          icoObj = $$(node, consts.id.ICON, setting),
+          ulLine = view.makeUlLineClass(setting, node);
+
+      if (ulLine.length == 0) {
+        ulObj.removeClass(consts.line.LINE);
+      } else {
+        ulObj.addClass(ulLine);
+      }
+
+      switchObj.attr("class", view.makeNodeLineClass(setting, node));
+
+      if (data.nodeIsParent(setting, node)) {
+        switchObj.removeAttr("disabled");
+      } else {
+        switchObj.attr("disabled", "disabled");
+      }
+
+      icoObj.removeAttr("style");
+      icoObj.attr("style", view.makeNodeIcoStyle(setting, node));
+      icoObj.attr("class", view.makeNodeIcoClass(setting, node));
+    },
+    setNodeName: function setNodeName(setting, node) {
+      var title = data.nodeTitle(setting, node),
+          nObj = $$(node, consts.id.SPAN, setting);
+      nObj.empty();
+
+      if (setting.view.nameIsHTML) {
+        nObj.html(data.nodeName(setting, node));
+      } else {
+        nObj.text(data.nodeName(setting, node));
+      }
+
+      if (tools.apply(setting.view.showTitle, [setting.treeId, node], setting.view.showTitle)) {
+        var aObj = $$(node, consts.id.A, setting);
+        aObj.attr("title", !title ? "" : title);
+      }
+    },
+    setNodeTarget: function setNodeTarget(setting, node) {
+      var aObj = $$(node, consts.id.A, setting);
+      aObj.attr("target", view.makeNodeTarget(node));
+    },
+    setNodeUrl: function setNodeUrl(setting, node) {
+      var aObj = $$(node, consts.id.A, setting),
+          url = view.makeNodeUrl(setting, node);
+
+      if (url == null || url.length == 0) {
+        aObj.removeAttr("href");
+      } else {
+        aObj.attr("href", url);
+      }
+    },
+    switchNode: function switchNode(setting, node) {
+      if (node.open || !tools.canAsync(setting, node)) {
+        view.expandCollapseNode(setting, node, !node.open);
+      } else if (setting.async.enable) {
+        if (!view.asyncNode(setting, node)) {
+          view.expandCollapseNode(setting, node, !node.open);
+          return;
+        }
+      } else if (node) {
+        view.expandCollapseNode(setting, node, !node.open);
+      }
+    }
+  }; // zTree defind
+
+
+  _$.fn.zTree = {
+    consts: _consts,
+    _z: {
+      tools: tools,
+      view: view,
+      event: event,
+      data: data
+    },
+    getZTreeObj: function getZTreeObj(treeId) {
+      var o = data.getZTreeTools(treeId);
+      return o ? o : null;
+    },
+    destroy: function destroy(treeId) {
+      if (!!treeId && treeId.length > 0) {
+        view.destroy(data.getSetting(treeId));
+      } else {
+        for (var s in settings) {
+          view.destroy(settings[s]);
+        }
+      }
+    },
+    init: function init(obj, zSetting, zNodes) {
+      var setting = tools.clone(_setting);
+
+      _$.extend(true, setting, zSetting);
+
+      setting.treeId = obj.attr("id");
+      setting.treeObj = obj;
+      setting.treeObj.empty();
+
+      if (setting.view.UIStyle === 'card') {
+        setting.view.showLine = false;
+      }
+
+      if (setting.treeObj && consts.ui[setting.view.UIStyle]) {
+        setting.treeObj.addClass(consts.ui[setting.view.UIStyle]);
+      }
+
+      settings[setting.treeId] = setting; //For some older browser,(e.g., ie6)
+
+      if (typeof document.body.style.maxHeight === "undefined") {
+        setting.view.expandSpeed = "";
+      }
+
+      data.initRoot(setting);
+      var root = data.getRoot(setting);
+      zNodes = zNodes ? tools.clone(tools.isArray(zNodes) ? zNodes : [zNodes]) : [];
+
+      if (setting.data.simpleData.enable) {
+        data.nodeChildren(setting, root, data.transformTozTreeFormat(setting, zNodes));
+      } else {
+        data.nodeChildren(setting, root, zNodes);
+      }
+
+      data.initCache(setting);
+      event.unbindTree(setting);
+      event.bindTree(setting);
+      event.unbindEvent(setting);
+      event.bindEvent(setting);
+      var zTreeTools = {
+        setting: setting,
+        addNodes: function addNodes(parentNode, index, newNodes, isSilent) {
+          if (!parentNode) parentNode = null;
+          var isParent = data.nodeIsParent(setting, parentNode);
+          if (parentNode && !isParent && setting.data.keep.leaf) return null;
+          var i = parseInt(index, 10);
+
+          if (isNaN(i)) {
+            isSilent = !!newNodes;
+            newNodes = index;
+            index = -1;
+          } else {
+            index = i;
+          }
+
+          if (!newNodes) return null;
+          var xNewNodes = tools.clone(tools.isArray(newNodes) ? newNodes : [newNodes]);
+
+          function addCallback() {
+            view.addNodes(setting, parentNode, index, xNewNodes, isSilent == true);
+          }
+
+          if (tools.canAsync(setting, parentNode)) {
+            view.asyncNode(setting, parentNode, isSilent, addCallback);
+          } else {
+            addCallback();
+          }
+
+          return xNewNodes;
+        },
+        cancelSelectedNode: function cancelSelectedNode(node) {
+          view.cancelPreSelectedNode(setting, node);
+        },
+        destroy: function destroy() {
+          view.destroy(setting);
+        },
+        expandAll: function expandAll(expandFlag) {
+          expandFlag = !!expandFlag;
+          view.expandCollapseSonNode(setting, null, expandFlag, true);
+          return expandFlag;
+        },
+        expandNode: function expandNode(node, expandFlag, sonSign, focus, callbackFlag) {
+          if (!node || !data.nodeIsParent(setting, node)) return null;
+
+          if (expandFlag !== true && expandFlag !== false) {
+            expandFlag = !node.open;
+          }
+
+          callbackFlag = !!callbackFlag;
+
+          if (callbackFlag && expandFlag && tools.apply(setting.callback.beforeExpand, [setting.treeId, node], true) == false) {
+            return null;
+          } else if (callbackFlag && !expandFlag && tools.apply(setting.callback.beforeCollapse, [setting.treeId, node], true) == false) {
+            return null;
+          }
+
+          if (expandFlag && node.parentTId) {
+            view.expandCollapseParentNode(setting, node.getParentNode(), expandFlag, false);
+          }
+
+          if (expandFlag === node.open && !sonSign) {
+            return null;
+          }
+
+          data.getRoot(setting).expandTriggerFlag = callbackFlag;
+
+          if (!tools.canAsync(setting, node) && sonSign) {
+            view.expandCollapseSonNode(setting, node, expandFlag, true, showNodeFocus);
+          } else {
+            node.open = !expandFlag;
+            view.switchNode(this.setting, node);
+            showNodeFocus();
+          }
+
+          return expandFlag;
+
+          function showNodeFocus() {
+            var a = $$(node, setting).get(0);
+
+            if (a && focus !== false) {
+              view.scrollIntoView(setting, a);
+            }
+          }
+        },
+        getNodes: function getNodes() {
+          return data.getNodes(setting);
+        },
+        getNodeByParam: function getNodeByParam(key, value, parentNode) {
+          if (!key) return null;
+          return data.getNodeByParam(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), key, value);
+        },
+        getNodeByTId: function getNodeByTId(tId) {
+          return data.getNodeCache(setting, tId);
+        },
+        getNodesByParam: function getNodesByParam(key, value, parentNode) {
+          if (!key) return null;
+          return data.getNodesByParam(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), key, value);
+        },
+        getNodesByParamFuzzy: function getNodesByParamFuzzy(key, value, parentNode) {
+          if (!key) return null;
+          return data.getNodesByParamFuzzy(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), key, value);
+        },
+        getNodesByFilter: function getNodesByFilter(filter, isSingle, parentNode, invokeParam) {
+          isSingle = !!isSingle;
+          if (!filter || typeof filter != "function") return isSingle ? null : [];
+          return data.getNodesByFilter(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), filter, isSingle, invokeParam);
+        },
+        getNodeIndex: function getNodeIndex(node) {
+          if (!node) return null;
+          var parentNode = node.parentTId ? node.getParentNode() : data.getRoot(setting);
+          var children = data.nodeChildren(setting, parentNode);
+
+          for (var i = 0, l = children.length; i < l; i++) {
+            if (children[i] == node) return i;
+          }
+
+          return -1;
+        },
+        getSelectedNodes: function getSelectedNodes() {
+          var r = [],
+              list = data.getRoot(setting).curSelectedList;
+
+          for (var i = 0, l = list.length; i < l; i++) {
+            r.push(list[i]);
+          }
+
+          return r;
+        },
+        isSelectedNode: function isSelectedNode(node) {
+          return data.isSelectedNode(setting, node);
+        },
+        reAsyncChildNodesPromise: function reAsyncChildNodesPromise(parentNode, reloadType, isSilent) {
+          var promise = new Promise(function (resolve, reject) {
+            try {
+              zTreeTools.reAsyncChildNodes(parentNode, reloadType, isSilent, function () {
+                resolve(parentNode);
+              });
+            } catch (e) {
+              reject(e);
+            }
+          });
+          return promise;
+        },
+        reAsyncChildNodes: function reAsyncChildNodes(parentNode, reloadType, isSilent, callback) {
+          if (!this.setting.async.enable) return;
+          var isRoot = !parentNode;
+
+          if (isRoot) {
+            parentNode = data.getRoot(setting);
+          }
+
+          if (reloadType == "refresh") {
+            var children = data.nodeChildren(setting, parentNode);
+
+            for (var i = 0, l = children ? children.length : 0; i < l; i++) {
+              data.removeNodeCache(setting, children[i]);
+            }
+
+            data.removeSelectedNode(setting);
+            data.nodeChildren(setting, parentNode, []);
+
+            if (isRoot) {
+              this.setting.treeObj.empty();
+            } else {
+              var ulObj = $$(parentNode, consts.id.UL, setting);
+              ulObj.empty();
+            }
+          }
+
+          view.asyncNode(this.setting, isRoot ? null : parentNode, !!isSilent, callback);
+        },
+        refresh: function refresh() {
+          this.setting.treeObj.empty();
+          var root = data.getRoot(setting),
+              nodes = data.nodeChildren(setting, root);
+          data.initRoot(setting);
+          data.nodeChildren(setting, root, nodes);
+          data.initCache(setting);
+          view.createNodes(setting, 0, data.nodeChildren(setting, root), null, -1);
+        },
+        removeChildNodes: function removeChildNodes(node) {
+          if (!node) return null;
+          var nodes = data.nodeChildren(setting, node);
+          view.removeChildNodes(setting, node);
+          return nodes ? nodes : null;
+        },
+        removeNode: function removeNode(node, callbackFlag) {
+          if (!node) return;
+          callbackFlag = !!callbackFlag;
+          if (callbackFlag && tools.apply(setting.callback.beforeRemove, [setting.treeId, node], true) == false) return;
+          view.removeNode(setting, node);
+
+          if (callbackFlag) {
+            this.setting.treeObj.trigger(consts.event.REMOVE, [setting.treeId, node]);
+          }
+        },
+        selectNode: function selectNode(node, addFlag, isSilent) {
+          if (!node) return;
+
+          if (tools.uCanDo(setting)) {
+            addFlag = setting.view.selectedMulti && addFlag;
+
+            if (node.parentTId) {
+              view.expandCollapseParentNode(setting, node.getParentNode(), true, false, showNodeFocus);
+            } else if (!isSilent) {
+              try {
+                $$(node, setting).focus().blur();
+              } catch (e) {}
+            }
+
+            view.selectNode(setting, node, addFlag);
+          }
+
+          function showNodeFocus() {
+            if (isSilent) {
+              return;
+            }
+
+            var a = $$(node, setting).get(0);
+            view.scrollIntoView(setting, a);
+          }
+        },
+        transformTozTreeNodes: function transformTozTreeNodes(simpleNodes) {
+          return data.transformTozTreeFormat(setting, simpleNodes);
+        },
+        transformToArray: function transformToArray(nodes) {
+          return data.transformToArrayFormat(setting, nodes);
+        },
+        updateNode: function updateNode(node, checkTypeFlag) {
+          if (!node) return;
+          var nObj = $$(node, setting);
+
+          if (nObj.get(0) && tools.uCanDo(setting)) {
+            view.setNodeName(setting, node);
+            view.setNodeTarget(setting, node);
+            view.setNodeUrl(setting, node);
+            view.setNodeLineIcos(setting, node);
+            view.setNodeFontCss(setting, node);
+            view.setNodeClasses(setting, node);
+          }
+        }
+      };
+      root.treeTools = zTreeTools;
+      data.setZTreeTools(setting, zTreeTools);
+      var children = data.nodeChildren(setting, root);
+
+      if (children && children.length > 0) {
+        view.createNodes(setting, 0, children, null, -1);
+      } else if (setting.async.enable && setting.async.url && setting.async.url !== '') {
+        view.asyncNode(setting);
+      }
+
+      return zTreeTools;
+    }
+  };
+  var zt = _$.fn.zTree,
+      $$ = tools.$,
+      consts = zt.consts;
+})(jQuery);
+/*
+ * JQuery zTree excheck
+ * v3.5.46
+ * http://treejs.cn/
+ *
+ * Copyright (c) 2010 Hunter.z
+ *
+ * Licensed same as jquery - MIT License
+ * http://www.opensource.org/licenses/mit-license.php
+ *
+ * Date: 2020-11-21
+ */
+
+
+(function ($) {
+  //default consts of excheck
+  var _consts = {
+    event: {
+      CHECK: "ztree_check"
+    },
+    id: {
+      CHECK: "_check"
+    },
+    checkbox: {
+      STYLE: "checkbox",
+      DEFAULT: "chk",
+      DISABLED: "disable",
+      FALSE: "false",
+      TRUE: "true",
+      FULL: "full",
+      PART: "part",
+      FOCUS: "focus"
+    },
+    radio: {
+      STYLE: "radio",
+      TYPE_ALL: "all",
+      TYPE_LEVEL: "level"
+    }
+  },
+      //default setting of excheck
+  _setting = {
+    check: {
+      enable: false,
+      autoCheckTrigger: false,
+      chkStyle: _consts.checkbox.STYLE,
+      nocheckInherit: false,
+      chkDisabledInherit: false,
+      radioType: _consts.radio.TYPE_LEVEL,
+      chkboxType: {
+        "Y": "ps",
+        "N": "ps"
+      }
+    },
+    data: {
+      key: {
+        checked: "checked"
+      }
+    },
+    callback: {
+      beforeCheck: null,
+      onCheck: null
+    }
+  },
+      //default root of excheck
+  _initRoot = function _initRoot(setting) {
+    var r = data.getRoot(setting);
+    r.radioCheckedList = [];
+  },
+      //default cache of excheck
+  _initCache = function _initCache(treeId) {},
+      //default bind event of excheck
+  _bindEvent = function _bindEvent(setting) {
+    var o = setting.treeObj,
+        c = consts.event;
+    o.bind(c.CHECK, function (event, srcEvent, treeId, node) {
+      event.srcEvent = srcEvent;
+      tools.apply(setting.callback.onCheck, [event, treeId, node]);
+    });
+  },
+      _unbindEvent = function _unbindEvent(setting) {
+    var o = setting.treeObj,
+        c = consts.event;
+    o.unbind(c.CHECK);
+  },
+      //default event proxy of excheck
+  _eventProxy = function _eventProxy(e) {
+    var target = e.target,
+        setting = data.getSetting(e.data.treeId),
+        tId = "",
+        node = null,
+        nodeEventType = "",
+        treeEventType = "",
+        nodeEventCallback = null,
+        treeEventCallback = null;
+
+    if (tools.eqs(e.type, "mouseover")) {
+      if (setting.check.enable && tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.CHECK) !== null) {
+        tId = tools.getNodeMainDom(target).id;
+        nodeEventType = "mouseoverCheck";
+      }
+    } else if (tools.eqs(e.type, "mouseout")) {
+      if (setting.check.enable && tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.CHECK) !== null) {
+        tId = tools.getNodeMainDom(target).id;
+        nodeEventType = "mouseoutCheck";
+      }
+    } else if (tools.eqs(e.type, "click")) {
+      if (setting.check.enable && tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.CHECK) !== null) {
+        tId = tools.getNodeMainDom(target).id;
+        nodeEventType = "checkNode";
+      }
+    }
+
+    if (tId.length > 0) {
+      node = data.getNodeCache(setting, tId);
+
+      switch (nodeEventType) {
+        case "checkNode":
+          nodeEventCallback = _handler.onCheckNode;
+          break;
+
+        case "mouseoverCheck":
+          nodeEventCallback = _handler.onMouseoverCheck;
+          break;
+
+        case "mouseoutCheck":
+          nodeEventCallback = _handler.onMouseoutCheck;
+          break;
+      }
+    }
+
+    var proxyResult = {
+      stop: nodeEventType === "checkNode",
+      node: node,
+      nodeEventType: nodeEventType,
+      nodeEventCallback: nodeEventCallback,
+      treeEventType: treeEventType,
+      treeEventCallback: treeEventCallback
+    };
+    return proxyResult;
+  },
+      //default init node of excheck
+  _initNode = function _initNode(setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
+    if (!n) return;
+    var checked = data.nodeChecked(setting, n);
+    n.checkedOld = checked;
+    if (typeof n.nocheck == "string") n.nocheck = tools.eqs(n.nocheck, "true");
+    n.nocheck = !!n.nocheck || setting.check.nocheckInherit && parentNode && !!parentNode.nocheck;
+    if (typeof n.chkDisabled == "string") n.chkDisabled = tools.eqs(n.chkDisabled, "true");
+    n.chkDisabled = !!n.chkDisabled || setting.check.chkDisabledInherit && parentNode && !!parentNode.chkDisabled;
+    if (typeof n.halfCheck == "string") n.halfCheck = tools.eqs(n.halfCheck, "true");
+    n.halfCheck = !!n.halfCheck;
+    n.check_Child_State = -1;
+    n.check_Focus = false;
+
+    n.getCheckStatus = function () {
+      return data.getCheckStatus(setting, n);
+    };
+
+    if (setting.check.chkStyle == consts.radio.STYLE && setting.check.radioType == consts.radio.TYPE_ALL && checked) {
+      var r = data.getRoot(setting);
+      r.radioCheckedList.push(n);
+    }
+  },
+      //add dom for check
+  _beforeA = function _beforeA(setting, node, html) {
+    if (setting.check.enable) {
+      data.makeChkFlag(setting, node);
+      html.push("<span ID='", node.tId, consts.id.CHECK, "' class='", view.makeChkClass(setting, node), "' treeNode", consts.id.CHECK, node.nocheck === true ? " style='display:none;'" : "", "></span>");
+    }
+  },
+      //update zTreeObj, add method of check
+  _zTreeTools = function _zTreeTools(setting, zTreeTools) {
+    zTreeTools.checkNode = function (node, checked, checkTypeFlag, callbackFlag) {
+      var nodeChecked = data.nodeChecked(setting, node);
+      if (node.chkDisabled === true) return;
+
+      if (checked !== true && checked !== false) {
+        checked = !nodeChecked;
+      }
+
+      callbackFlag = !!callbackFlag;
+
+      if (nodeChecked === checked && !checkTypeFlag) {
+        return;
+      } else if (callbackFlag && tools.apply(this.setting.callback.beforeCheck, [this.setting.treeId, node], true) == false) {
+        return;
+      }
+
+      if (tools.uCanDo(this.setting) && this.setting.check.enable && node.nocheck !== true) {
+        data.nodeChecked(setting, node, checked);
+        var checkObj = $$(node, consts.id.CHECK, this.setting);
+        if (checkTypeFlag || this.setting.check.chkStyle === consts.radio.STYLE) view.checkNodeRelation(this.setting, node);
+        view.setChkClass(this.setting, checkObj, node);
+        view.repairParentChkClassWithSelf(this.setting, node);
+
+        if (callbackFlag) {
+          this.setting.treeObj.trigger(consts.event.CHECK, [null, this.setting.treeId, node]);
+        }
+      }
+    };
+
+    zTreeTools.checkAllNodes = function (checked) {
+      view.repairAllChk(this.setting, !!checked);
+    };
+
+    zTreeTools.getCheckedNodes = function (checked) {
+      checked = checked !== false;
+      var children = data.nodeChildren(setting, data.getRoot(this.setting));
+      return data.getTreeCheckedNodes(this.setting, children, checked);
+    };
+
+    zTreeTools.getChangeCheckedNodes = function () {
+      var children = data.nodeChildren(setting, data.getRoot(this.setting));
+      return data.getTreeChangeCheckedNodes(this.setting, children);
+    };
+
+    zTreeTools.setChkDisabled = function (node, disabled, inheritParent, inheritChildren) {
+      disabled = !!disabled;
+      inheritParent = !!inheritParent;
+      inheritChildren = !!inheritChildren;
+      view.repairSonChkDisabled(this.setting, node, disabled, inheritChildren);
+      view.repairParentChkDisabled(this.setting, node.getParentNode(), disabled, inheritParent);
+    };
+
+    var _updateNode = zTreeTools.updateNode;
+
+    zTreeTools.updateNode = function (node, checkTypeFlag) {
+      if (_updateNode) _updateNode.apply(zTreeTools, arguments);
+      if (!node || !this.setting.check.enable) return;
+      var nObj = $$(node, this.setting);
+
+      if (nObj.get(0) && tools.uCanDo(this.setting)) {
+        var checkObj = $$(node, consts.id.CHECK, this.setting);
+        if (checkTypeFlag == true || this.setting.check.chkStyle === consts.radio.STYLE) view.checkNodeRelation(this.setting, node);
+        view.setChkClass(this.setting, checkObj, node);
+        view.repairParentChkClassWithSelf(this.setting, node);
+      }
+    };
+  },
+      //method of operate data
+  _data = {
+    getRadioCheckedList: function getRadioCheckedList(setting) {
+      var checkedList = data.getRoot(setting).radioCheckedList;
+
+      for (var i = 0, j = checkedList.length; i < j; i++) {
+        if (!data.getNodeCache(setting, checkedList[i].tId)) {
+          checkedList.splice(i, 1);
+          i--;
+          j--;
+        }
+      }
+
+      return checkedList;
+    },
+    getCheckStatus: function getCheckStatus(setting, node) {
+      if (!setting.check.enable || node.nocheck || node.chkDisabled) return null;
+      var checked = data.nodeChecked(setting, node),
+          r = {
+        checked: checked,
+        half: node.halfCheck ? node.halfCheck : setting.check.chkStyle == consts.radio.STYLE ? node.check_Child_State === 2 : checked ? node.check_Child_State > -1 && node.check_Child_State < 2 : node.check_Child_State > 0
+      };
+      return r;
+    },
+    getTreeCheckedNodes: function getTreeCheckedNodes(setting, nodes, checked, results) {
+      if (!nodes) return [];
+      var onlyOne = checked && setting.check.chkStyle == consts.radio.STYLE && setting.check.radioType == consts.radio.TYPE_ALL;
+      results = !results ? [] : results;
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+        var children = data.nodeChildren(setting, node);
+        var nodeChecked = data.nodeChecked(setting, node);
+
+        if (node.nocheck !== true && node.chkDisabled !== true && nodeChecked == checked) {
+          results.push(node);
+
+          if (onlyOne) {
+            break;
+          }
+        }
+
+        data.getTreeCheckedNodes(setting, children, checked, results);
+
+        if (onlyOne && results.length > 0) {
+          break;
+        }
+      }
+
+      return results;
+    },
+    getTreeChangeCheckedNodes: function getTreeChangeCheckedNodes(setting, nodes, results) {
+      if (!nodes) return [];
+      results = !results ? [] : results;
+
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        var node = nodes[i];
+        var children = data.nodeChildren(setting, node);
+        var nodeChecked = data.nodeChecked(setting, node);
+
+        if (node.nocheck !== true && node.chkDisabled !== true && nodeChecked != node.checkedOld) {
+          results.push(node);
+        }
+
+        data.getTreeChangeCheckedNodes(setting, children, results);
+      }
+
+      return results;
+    },
+    makeChkFlag: function makeChkFlag(setting, node) {
+      if (!node) return;
+      var chkFlag = -1;
+      var children = data.nodeChildren(setting, node);
+
+      if (children) {
+        for (var i = 0, l = children.length; i < l; i++) {
+          var cNode = children[i];
+          var nodeChecked = data.nodeChecked(setting, cNode);
+          var tmp = -1;
+
+          if (setting.check.chkStyle == consts.radio.STYLE) {
+            if (cNode.nocheck === true || cNode.chkDisabled === true) {
+              tmp = cNode.check_Child_State;
+            } else if (cNode.halfCheck === true) {
+              tmp = 2;
+            } else if (nodeChecked) {
+              tmp = 2;
+            } else {
+              tmp = cNode.check_Child_State > 0 ? 2 : 0;
+            }
+
+            if (tmp == 2) {
+              chkFlag = 2;
+              break;
+            } else if (tmp == 0) {
+              chkFlag = 0;
+            }
+          } else if (setting.check.chkStyle == consts.checkbox.STYLE) {
+            if (cNode.nocheck === true || cNode.chkDisabled === true) {
+              tmp = cNode.check_Child_State;
+            } else if (cNode.halfCheck === true) {
+              tmp = 1;
+            } else if (nodeChecked) {
+              tmp = cNode.check_Child_State === -1 || cNode.check_Child_State === 2 ? 2 : 1;
+            } else {
+              tmp = cNode.check_Child_State > 0 ? 1 : 0;
+            }
+
+            if (tmp === 1) {
+              chkFlag = 1;
+              break;
+            } else if (tmp === 2 && chkFlag > -1 && i > 0 && tmp !== chkFlag) {
+              chkFlag = 1;
+              break;
+            } else if (chkFlag === 2 && tmp > -1 && tmp < 2) {
+              chkFlag = 1;
+              break;
+            } else if (tmp > -1) {
+              chkFlag = tmp;
+            }
+          }
+        }
+      }
+
+      node.check_Child_State = chkFlag;
+    }
+  },
+      //method of event proxy
+  _event = {},
+      //method of event handler
+  _handler = {
+    onCheckNode: function onCheckNode(event, node) {
+      if (node.chkDisabled === true) return false;
+      var setting = data.getSetting(event.data.treeId);
+      if (tools.apply(setting.callback.beforeCheck, [setting.treeId, node], true) == false) return true;
+      var nodeChecked = data.nodeChecked(setting, node);
+      data.nodeChecked(setting, node, !nodeChecked);
+      view.checkNodeRelation(setting, node);
+      var checkObj = $$(node, consts.id.CHECK, setting);
+      view.setChkClass(setting, checkObj, node);
+      view.repairParentChkClassWithSelf(setting, node);
+      setting.treeObj.trigger(consts.event.CHECK, [event, setting.treeId, node]);
+      return true;
+    },
+    onMouseoverCheck: function onMouseoverCheck(event, node) {
+      if (node.chkDisabled === true) return false;
+      var setting = data.getSetting(event.data.treeId),
+          checkObj = $$(node, consts.id.CHECK, setting);
+      node.check_Focus = true;
+      view.setChkClass(setting, checkObj, node);
+      return true;
+    },
+    onMouseoutCheck: function onMouseoutCheck(event, node) {
+      if (node.chkDisabled === true) return false;
+      var setting = data.getSetting(event.data.treeId),
+          checkObj = $$(node, consts.id.CHECK, setting);
+      node.check_Focus = false;
+      view.setChkClass(setting, checkObj, node);
+      return true;
+    }
+  },
+      //method of tools for zTree
+  _tools = {},
+      //method of operate ztree dom
+  _view = {
+    checkNodeRelation: function checkNodeRelation(setting, node) {
+      var pNode,
+          i,
+          l,
+          r = consts.radio;
+      var nodeChecked = data.nodeChecked(setting, node);
+
+      if (setting.check.chkStyle == r.STYLE) {
+        var checkedList = data.getRadioCheckedList(setting);
+
+        if (nodeChecked) {
+          if (setting.check.radioType == r.TYPE_ALL) {
+            for (i = checkedList.length - 1; i >= 0; i--) {
+              pNode = checkedList[i];
+              var pNodeChecked = data.nodeChecked(setting, pNode);
+
+              if (pNodeChecked && pNode != node) {
+                data.nodeChecked(setting, pNode, false);
+                checkedList.splice(i, 1);
+                view.setChkClass(setting, $$(pNode, consts.id.CHECK, setting), pNode);
+
+                if (pNode.parentTId != node.parentTId) {
+                  view.repairParentChkClassWithSelf(setting, pNode);
+                }
+              }
+            }
+
+            checkedList.push(node);
+          } else {
+            var parentNode = node.parentTId ? node.getParentNode() : data.getRoot(setting);
+            var children = data.nodeChildren(setting, parentNode);
+
+            for (i = 0, l = children.length; i < l; i++) {
+              pNode = children[i];
+              var pNodeChecked = data.nodeChecked(setting, pNode);
+
+              if (pNodeChecked && pNode != node) {
+                data.nodeChecked(setting, pNode, false);
+                view.setChkClass(setting, $$(pNode, consts.id.CHECK, setting), pNode);
+              }
+            }
+          }
+        } else if (setting.check.radioType == r.TYPE_ALL) {
+          for (i = 0, l = checkedList.length; i < l; i++) {
+            if (node == checkedList[i]) {
+              checkedList.splice(i, 1);
+              break;
+            }
+          }
+        }
+      } else {
+        var children = data.nodeChildren(setting, node);
+
+        if (nodeChecked && (!children || children.length == 0 || setting.check.chkboxType.Y.indexOf("s") > -1)) {
+          view.setSonNodeCheckBox(setting, node, true);
+        }
+
+        if (!nodeChecked && (!children || children.length == 0 || setting.check.chkboxType.N.indexOf("s") > -1)) {
+          view.setSonNodeCheckBox(setting, node, false);
+        }
+
+        if (nodeChecked && setting.check.chkboxType.Y.indexOf("p") > -1) {
+          view.setParentNodeCheckBox(setting, node, true);
+        }
+
+        if (!nodeChecked && setting.check.chkboxType.N.indexOf("p") > -1) {
+          view.setParentNodeCheckBox(setting, node, false);
+        }
+      }
+    },
+    makeChkClass: function makeChkClass(setting, node) {
+      var c = consts.checkbox,
+          r = consts.radio,
+          fullStyle = "";
+      var nodeChecked = data.nodeChecked(setting, node);
+
+      if (node.chkDisabled === true) {
+        fullStyle = c.DISABLED;
+      } else if (node.halfCheck) {
+        fullStyle = c.PART;
+      } else if (setting.check.chkStyle == r.STYLE) {
+        fullStyle = node.check_Child_State < 1 ? c.FULL : c.PART;
+      } else {
+        fullStyle = nodeChecked ? node.check_Child_State === 2 || node.check_Child_State === -1 ? c.FULL : c.PART : node.check_Child_State < 1 ? c.FULL : c.PART;
+      }
+
+      var chkName = setting.check.chkStyle + "_" + (nodeChecked ? c.TRUE : c.FALSE) + "_" + fullStyle;
+      chkName = node.check_Focus && node.chkDisabled !== true ? chkName + "_" + c.FOCUS : chkName;
+      return consts.className.BUTTON + " " + c.DEFAULT + " " + chkName;
+    },
+    repairAllChk: function repairAllChk(setting, checked) {
+      if (setting.check.enable && setting.check.chkStyle === consts.checkbox.STYLE) {
+        var root = data.getRoot(setting);
+        var children = data.nodeChildren(setting, root);
+
+        for (var i = 0, l = children.length; i < l; i++) {
+          var node = children[i];
+
+          if (node.nocheck !== true && node.chkDisabled !== true) {
+            data.nodeChecked(setting, node, checked);
+          }
+
+          view.setSonNodeCheckBox(setting, node, checked);
+        }
+      }
+    },
+    repairChkClass: function repairChkClass(setting, node) {
+      if (!node) return;
+      data.makeChkFlag(setting, node);
+
+      if (node.nocheck !== true) {
+        var checkObj = $$(node, consts.id.CHECK, setting);
+        view.setChkClass(setting, checkObj, node);
+      }
+    },
+    repairParentChkClass: function repairParentChkClass(setting, node) {
+      if (!node || !node.parentTId) return;
+      var pNode = node.getParentNode();
+      view.repairChkClass(setting, pNode);
+      view.repairParentChkClass(setting, pNode);
+    },
+    repairParentChkClassWithSelf: function repairParentChkClassWithSelf(setting, node) {
+      if (!node) return;
+      var children = data.nodeChildren(setting, node);
+
+      if (children && children.length > 0) {
+        view.repairParentChkClass(setting, children[0]);
+      } else {
+        view.repairParentChkClass(setting, node);
+      }
+    },
+    repairSonChkDisabled: function repairSonChkDisabled(setting, node, chkDisabled, inherit) {
+      if (!node) return;
+
+      if (node.chkDisabled != chkDisabled) {
+        node.chkDisabled = chkDisabled;
+      }
+
+      view.repairChkClass(setting, node);
+      var children = data.nodeChildren(setting, node);
+
+      if (children && inherit) {
+        for (var i = 0, l = children.length; i < l; i++) {
+          var sNode = children[i];
+          view.repairSonChkDisabled(setting, sNode, chkDisabled, inherit);
+        }
+      }
+    },
+    repairParentChkDisabled: function repairParentChkDisabled(setting, node, chkDisabled, inherit) {
+      if (!node) return;
+
+      if (node.chkDisabled != chkDisabled && inherit) {
+        node.chkDisabled = chkDisabled;
+      }
+
+      view.repairChkClass(setting, node);
+      view.repairParentChkDisabled(setting, node.getParentNode(), chkDisabled, inherit);
+    },
+    setChkClass: function setChkClass(setting, obj, node) {
+      if (!obj) return;
+
+      if (node.nocheck === true) {
+        obj.hide();
+      } else {
+        obj.show();
+      }
+
+      obj.attr('class', view.makeChkClass(setting, node));
+    },
+    setParentNodeCheckBox: function setParentNodeCheckBox(setting, node, value, srcNode) {
+      var checkObj = $$(node, consts.id.CHECK, setting);
+      if (!srcNode) srcNode = node;
+      data.makeChkFlag(setting, node);
+
+      if (node.nocheck !== true && node.chkDisabled !== true) {
+        data.nodeChecked(setting, node, value);
+        view.setChkClass(setting, checkObj, node);
+
+        if (setting.check.autoCheckTrigger && node != srcNode) {
+          setting.treeObj.trigger(consts.event.CHECK, [null, setting.treeId, node]);
+        }
+      }
+
+      if (node.parentTId) {
+        var pSign = true;
+
+        if (!value) {
+          var pNodes = data.nodeChildren(setting, node.getParentNode());
+
+          for (var i = 0, l = pNodes.length; i < l; i++) {
+            var pNode = pNodes[i];
+            var nodeChecked = data.nodeChecked(setting, pNode);
+
+            if (pNode.nocheck !== true && pNode.chkDisabled !== true && nodeChecked || (pNode.nocheck === true || pNode.chkDisabled === true) && pNode.check_Child_State > 0) {
+              pSign = false;
+              break;
+            }
+          }
+        }
+
+        if (pSign) {
+          view.setParentNodeCheckBox(setting, node.getParentNode(), value, srcNode);
+        }
+      }
+    },
+    setSonNodeCheckBox: function setSonNodeCheckBox(setting, node, value, srcNode) {
+      if (!node) return;
+      var checkObj = $$(node, consts.id.CHECK, setting);
+      if (!srcNode) srcNode = node;
+      var hasDisable = false;
+      var children = data.nodeChildren(setting, node);
+
+      if (children) {
+        for (var i = 0, l = children.length; i < l; i++) {
+          var sNode = children[i];
+          view.setSonNodeCheckBox(setting, sNode, value, srcNode);
+          if (sNode.chkDisabled === true) hasDisable = true;
+        }
+      }
+
+      if (node != data.getRoot(setting) && node.chkDisabled !== true) {
+        if (hasDisable && node.nocheck !== true) {
+          data.makeChkFlag(setting, node);
+        }
+
+        if (node.nocheck !== true && node.chkDisabled !== true) {
+          data.nodeChecked(setting, node, value);
+          if (!hasDisable) node.check_Child_State = children && children.length > 0 ? value ? 2 : 0 : -1;
+        } else {
+          node.check_Child_State = -1;
+        }
+
+        view.setChkClass(setting, checkObj, node);
+
+        if (setting.check.autoCheckTrigger && node != srcNode && node.nocheck !== true && node.chkDisabled !== true) {
+          setting.treeObj.trigger(consts.event.CHECK, [null, setting.treeId, node]);
+        }
+      }
+    }
+  },
+      _z = {
+    tools: _tools,
+    view: _view,
+    event: _event,
+    data: _data
+  };
+
+  $.extend(true, $.fn.zTree.consts, _consts);
+  $.extend(true, $.fn.zTree._z, _z);
+  var zt = $.fn.zTree,
+      tools = zt._z.tools,
+      consts = zt.consts,
+      view = zt._z.view,
+      data = zt._z.data,
+      event = zt._z.event,
+      $$ = tools.$;
+
+  data.nodeChecked = function (setting, node, newChecked) {
+    if (!node) {
+      return false;
+    }
+
+    var key = setting.data.key.checked;
+
+    if (typeof newChecked !== 'undefined') {
+      if (typeof newChecked === "string") {
+        newChecked = tools.eqs(newChecked, "true");
+      }
+
+      newChecked = !!newChecked;
+      node[key] = newChecked;
+    } else if (typeof node[key] == "string") {
+      node[key] = tools.eqs(node[key], "true");
+    } else {
+      node[key] = !!node[key];
+    }
+
+    return node[key];
+  };
+
+  data.exSetting(_setting);
+  data.addInitBind(_bindEvent);
+  data.addInitUnBind(_unbindEvent);
+  data.addInitCache(_initCache);
+  data.addInitNode(_initNode);
+  data.addInitProxy(_eventProxy, true);
+  data.addInitRoot(_initRoot);
+  data.addBeforeA(_beforeA);
+  data.addZTreeTools(_zTreeTools);
+  var _createNodes = view.createNodes;
+
+  view.createNodes = function (setting, level, nodes, parentNode, index) {
+    if (_createNodes) _createNodes.apply(view, arguments);
+    if (!nodes) return;
+    view.repairParentChkClassWithSelf(setting, parentNode);
+  };
+
+  var _removeNode = view.removeNode;
+
+  view.removeNode = function (setting, node) {
+    var parentNode = node.getParentNode();
+    if (_removeNode) _removeNode.apply(view, arguments);
+    if (!node || !parentNode) return;
+    view.repairChkClass(setting, parentNode);
+    view.repairParentChkClass(setting, parentNode);
+  };
+
+  var _appendNodes = view.appendNodes;
+
+  view.appendNodes = function (setting, level, nodes, parentNode, index, initFlag, openFlag) {
+    var html = "";
+
+    if (_appendNodes) {
+      html = _appendNodes.apply(view, arguments);
+    }
+
+    if (parentNode) {
+      data.makeChkFlag(setting, parentNode);
+    }
+
+    return html;
+  };
+})(jQuery);
+/*
+ * JQuery zTree exedit
+ * v3.5.46
+ * http://treejs.cn/
+ *
+ * Copyright (c) 2010 Hunter.z
+ *
+ * Licensed same as jquery - MIT License
+ * http://www.opensource.org/licenses/mit-license.php
+ *
+ * Date: 2020-11-21
+ */
+
+
+(function ($) {
+  //default consts of exedit
+  var _consts = {
+    event: {
+      DRAG: "ztree_drag",
+      DROP: "ztree_drop",
+      RENAME: "ztree_rename",
+      DRAGMOVE: "ztree_dragmove"
+    },
+    id: {
+      EDIT: "_edit",
+      INPUT: "_input",
+      REMOVE: "_remove"
+    },
+    move: {
+      TYPE_INNER: "inner",
+      TYPE_PREV: "prev",
+      TYPE_NEXT: "next"
+    },
+    node: {
+      CURSELECTED_EDIT: "curSelectedNode_Edit",
+      TMPTARGET_TREE: "tmpTargetzTree",
+      TMPTARGET_NODE: "tmpTargetNode"
+    }
+  },
+      //default setting of exedit
+  _setting = {
+    edit: {
+      enable: false,
+      editNameSelectAll: false,
+      showRemoveBtn: true,
+      showRenameBtn: true,
+      removeTitle: "remove",
+      renameTitle: "rename",
+      drag: {
+        autoExpandTrigger: false,
+        isCopy: true,
+        isMove: true,
+        prev: true,
+        next: true,
+        inner: true,
+        minMoveSize: 5,
+        borderMax: 10,
+        borderMin: -5,
+        maxShowNodeNum: 5,
+        autoOpenTime: 500
+      }
+    },
+    view: {
+      addHoverDom: null,
+      removeHoverDom: null
+    },
+    callback: {
+      beforeDrag: null,
+      beforeDragOpen: null,
+      beforeDrop: null,
+      beforeEditName: null,
+      beforeRename: null,
+      onDrag: null,
+      onDragMove: null,
+      onDrop: null,
+      onRename: null
+    }
+  },
+      //default root of exedit
+  _initRoot = function _initRoot(setting) {
+    var r = data.getRoot(setting),
+        rs = data.getRoots();
+    r.curEditNode = null;
+    r.curEditInput = null;
+    r.curHoverNode = null;
+    r.dragFlag = 0;
+    r.dragNodeShowBefore = [];
+    r.dragMaskList = new Array();
+    rs.showHoverDom = true;
+  },
+      //default cache of exedit
+  _initCache = function _initCache(treeId) {},
+      //default bind event of exedit
+  _bindEvent = function _bindEvent(setting) {
+    var o = setting.treeObj;
+    var c = consts.event;
+    o.bind(c.RENAME, function (event, treeId, treeNode, isCancel) {
+      tools.apply(setting.callback.onRename, [event, treeId, treeNode, isCancel]);
+    });
+    o.bind(c.DRAG, function (event, srcEvent, treeId, treeNodes) {
+      tools.apply(setting.callback.onDrag, [srcEvent, treeId, treeNodes]);
+    });
+    o.bind(c.DRAGMOVE, function (event, srcEvent, treeId, treeNodes) {
+      tools.apply(setting.callback.onDragMove, [srcEvent, treeId, treeNodes]);
+    });
+    o.bind(c.DROP, function (event, srcEvent, treeId, treeNodes, targetNode, moveType, isCopy) {
+      tools.apply(setting.callback.onDrop, [srcEvent, treeId, treeNodes, targetNode, moveType, isCopy]);
+    });
+  },
+      _unbindEvent = function _unbindEvent(setting) {
+    var o = setting.treeObj;
+    var c = consts.event;
+    o.unbind(c.RENAME);
+    o.unbind(c.DRAG);
+    o.unbind(c.DRAGMOVE);
+    o.unbind(c.DROP);
+  },
+      //default event proxy of exedit
+  _eventProxy = function _eventProxy(e) {
+    var target = e.target,
+        setting = data.getSetting(e.data.treeId),
+        relatedTarget = e.relatedTarget,
+        tId = "",
+        node = null,
+        nodeEventType = "",
+        treeEventType = "",
+        nodeEventCallback = null,
+        treeEventCallback = null,
+        tmp = null;
+
+    if (tools.eqs(e.type, "mouseover")) {
+      tmp = tools.getMDom(setting, target, [{
+        tagName: "a",
+        attrName: "treeNode" + consts.id.A
+      }]);
+
+      if (tmp) {
+        tId = tools.getNodeMainDom(tmp).id;
+        nodeEventType = "hoverOverNode";
+      }
+    } else if (tools.eqs(e.type, "mouseout")) {
+      tmp = tools.getMDom(setting, relatedTarget, [{
+        tagName: "a",
+        attrName: "treeNode" + consts.id.A
+      }]);
+
+      if (!tmp) {
+        tId = "remove";
+        nodeEventType = "hoverOutNode";
+      }
+    } else if (tools.eqs(e.type, "mousedown")) {
+      tmp = tools.getMDom(setting, target, [{
+        tagName: "a",
+        attrName: "treeNode" + consts.id.A
+      }]);
+
+      if (tmp) {
+        tId = tools.getNodeMainDom(tmp).id;
+        nodeEventType = "mousedownNode";
+      }
+    }
+
+    if (tId.length > 0) {
+      node = data.getNodeCache(setting, tId);
+
+      switch (nodeEventType) {
+        case "mousedownNode":
+          nodeEventCallback = _handler.onMousedownNode;
+          break;
+
+        case "hoverOverNode":
+          nodeEventCallback = _handler.onHoverOverNode;
+          break;
+
+        case "hoverOutNode":
+          nodeEventCallback = _handler.onHoverOutNode;
+          break;
+      }
+    }
+
+    var proxyResult = {
+      stop: false,
+      node: node,
+      nodeEventType: nodeEventType,
+      nodeEventCallback: nodeEventCallback,
+      treeEventType: treeEventType,
+      treeEventCallback: treeEventCallback
+    };
+    return proxyResult;
+  },
+      //default init node of exedit
+  _initNode = function _initNode(setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
+    if (!n) return;
+    n.isHover = false;
+    n.editNameFlag = false;
+  },
+      //update zTreeObj, add method of edit
+  _zTreeTools = function _zTreeTools(setting, zTreeTools) {
+    zTreeTools.cancelEditName = function (newName) {
+      var root = data.getRoot(this.setting);
+      if (!root.curEditNode) return;
+      view.cancelCurEditNode(this.setting, newName ? newName : null, true);
+    };
+
+    zTreeTools.copyNode = function (targetNode, node, moveType, isSilent) {
+      if (!node) return null;
+      var isParent = data.nodeIsParent(setting, targetNode);
+      if (targetNode && !isParent && this.setting.data.keep.leaf && moveType === consts.move.TYPE_INNER) return null;
+
+      var _this = this,
+          newNode = tools.clone(node);
+
+      if (!targetNode) {
+        targetNode = null;
+        moveType = consts.move.TYPE_INNER;
+      }
+
+      if (moveType == consts.move.TYPE_INNER) {
+        var copyCallback = function copyCallback() {
+          view.addNodes(_this.setting, targetNode, -1, [newNode], isSilent);
+        };
+
+        if (tools.canAsync(this.setting, targetNode)) {
+          view.asyncNode(this.setting, targetNode, isSilent, copyCallback);
+        } else {
+          copyCallback();
+        }
+      } else {
+        view.addNodes(this.setting, targetNode.parentNode, -1, [newNode], isSilent);
+        view.moveNode(this.setting, targetNode, newNode, moveType, false, isSilent);
+      }
+
+      return newNode;
+    };
+
+    zTreeTools.editName = function (node) {
+      if (!node || !node.tId || node !== data.getNodeCache(this.setting, node.tId)) return;
+      if (node.parentTId) view.expandCollapseParentNode(this.setting, node.getParentNode(), true);
+      view.editNode(this.setting, node);
+    };
+
+    zTreeTools.moveNode = function (targetNode, node, moveType, isSilent) {
+      if (!node) return node;
+      var isParent = data.nodeIsParent(setting, targetNode);
+
+      if (targetNode && !isParent && this.setting.data.keep.leaf && moveType === consts.move.TYPE_INNER) {
+        return null;
+      } else if (targetNode && (node.parentTId == targetNode.tId && moveType == consts.move.TYPE_INNER || $$(node, this.setting).find("#" + targetNode.tId).length > 0)) {
+        return null;
+      } else if (!targetNode) {
+        targetNode = null;
+      }
+
+      var _this = this;
+
+      function moveCallback() {
+        view.moveNode(_this.setting, targetNode, node, moveType, false, isSilent);
+      }
+
+      if (tools.canAsync(this.setting, targetNode) && moveType === consts.move.TYPE_INNER) {
+        view.asyncNode(this.setting, targetNode, isSilent, moveCallback);
+      } else {
+        moveCallback();
+      }
+
+      return node;
+    };
+
+    zTreeTools.setEditable = function (editable) {
+      this.setting.edit.enable = editable;
+      return this.refresh();
+    };
+  },
+      //method of operate data
+  _data = {
+    setSonNodeLevel: function setSonNodeLevel(setting, parentNode, node) {
+      if (!node) return;
+      var children = data.nodeChildren(setting, node);
+      node.level = parentNode ? parentNode.level + 1 : 0;
+      if (!children) return;
+
+      for (var i = 0, l = children.length; i < l; i++) {
+        if (children[i]) data.setSonNodeLevel(setting, node, children[i]);
+      }
+    }
+  },
+      //method of event proxy
+  _event = {},
+      //method of event handler
+  _handler = {
+    onHoverOverNode: function onHoverOverNode(event, node) {
+      var setting = data.getSetting(event.data.treeId),
+          root = data.getRoot(setting);
+
+      if (root.curHoverNode != node) {
+        _handler.onHoverOutNode(event);
+      }
+
+      root.curHoverNode = node;
+      view.addHoverDom(setting, node);
+    },
+    onHoverOutNode: function onHoverOutNode(event, node) {
+      var setting = data.getSetting(event.data.treeId),
+          root = data.getRoot(setting);
+
+      if (root.curHoverNode && !data.isSelectedNode(setting, root.curHoverNode)) {
+        view.removeTreeDom(setting, root.curHoverNode);
+        root.curHoverNode = null;
+      }
+    },
+    onMousedownNode: function onMousedownNode(eventMouseDown, _node) {
+      var i,
+          l,
+          setting = data.getSetting(eventMouseDown.data.treeId),
+          root = data.getRoot(setting),
+          roots = data.getRoots(); //right click can't drag & drop
+
+      if (eventMouseDown.button == 2 || !setting.edit.enable || !setting.edit.drag.isCopy && !setting.edit.drag.isMove) return true; //input of edit node name can't drag & drop
+
+      var target = eventMouseDown.target,
+          _nodes = data.getRoot(setting).curSelectedList,
+          nodes = [];
+
+      if (!data.isSelectedNode(setting, _node)) {
+        nodes = [_node];
+      } else {
+        for (i = 0, l = _nodes.length; i < l; i++) {
+          if (_nodes[i].editNameFlag && tools.eqs(target.tagName, "input") && target.getAttribute("treeNode" + consts.id.INPUT) !== null) {
+            return true;
+          }
+
+          nodes.push(_nodes[i]);
+
+          if (nodes[0].parentTId !== _nodes[i].parentTId) {
+            nodes = [_node];
+            break;
+          }
+        }
+      }
+
+      view.editNodeBlur = true;
+      view.cancelCurEditNode(setting);
+      var doc = $(setting.treeObj.get(0).ownerDocument),
+          body = $(setting.treeObj.get(0).ownerDocument.body),
+          curNode,
+          tmpArrow,
+          tmpTarget,
+          isOtherTree = false,
+          targetSetting = setting,
+          sourceSetting = setting,
+          preNode,
+          nextNode,
+          preTmpTargetNodeId = null,
+          preTmpMoveType = null,
+          tmpTargetNodeId = null,
+          moveType = consts.move.TYPE_INNER,
+          mouseDownX = eventMouseDown.clientX,
+          mouseDownY = eventMouseDown.clientY,
+          startTime = new Date().getTime();
+
+      if (tools.uCanDo(setting)) {
+        doc.bind("mousemove", _docMouseMove);
+      }
+
+      function _docMouseMove(event) {
+        //avoid start drag after click node
+        if (root.dragFlag == 0 && Math.abs(mouseDownX - event.clientX) < setting.edit.drag.minMoveSize && Math.abs(mouseDownY - event.clientY) < setting.edit.drag.minMoveSize) {
+          return true;
+        }
+
+        var i, l, tmpNode, tmpDom, tmpNodes;
+        body.css("cursor", "pointer");
+
+        if (root.dragFlag == 0) {
+          if (tools.apply(setting.callback.beforeDrag, [setting.treeId, nodes], true) == false) {
+            _docMouseUp(event);
+
+            return true;
+          }
+
+          for (i = 0, l = nodes.length; i < l; i++) {
+            if (i == 0) {
+              root.dragNodeShowBefore = [];
+            }
+
+            tmpNode = nodes[i];
+
+            if (data.nodeIsParent(setting, tmpNode) && tmpNode.open) {
+              view.expandCollapseNode(setting, tmpNode, !tmpNode.open);
+              root.dragNodeShowBefore[tmpNode.tId] = true;
+            } else {
+              root.dragNodeShowBefore[tmpNode.tId] = false;
+            }
+          }
+
+          root.dragFlag = 1;
+          roots.showHoverDom = false;
+          tools.showIfameMask(setting, true); //sort
+
+          var isOrder = true,
+              lastIndex = -1;
+
+          if (nodes.length > 1) {
+            var pNodes = nodes[0].parentTId ? data.nodeChildren(setting, nodes[0].getParentNode()) : data.getNodes(setting);
+            tmpNodes = [];
+
+            for (i = 0, l = pNodes.length; i < l; i++) {
+              if (root.dragNodeShowBefore[pNodes[i].tId] !== undefined) {
+                if (isOrder && lastIndex > -1 && lastIndex + 1 !== i) {
+                  isOrder = false;
+                }
+
+                tmpNodes.push(pNodes[i]);
+                lastIndex = i;
+              }
+
+              if (nodes.length === tmpNodes.length) {
+                nodes = tmpNodes;
+                break;
+              }
+            }
+          }
+
+          if (isOrder) {
+            preNode = nodes[0].getPreNode();
+            nextNode = nodes[nodes.length - 1].getNextNode();
+          } //set node in selected
+
+
+          curNode = $$("<ul class='zTreeDragUL'></ul>", setting);
+
+          for (i = 0, l = nodes.length; i < l; i++) {
+            tmpNode = nodes[i];
+            tmpNode.editNameFlag = false;
+            view.selectNode(setting, tmpNode, i > 0);
+            view.removeTreeDom(setting, tmpNode);
+
+            if (i > setting.edit.drag.maxShowNodeNum - 1) {
+              continue;
+            }
+
+            tmpDom = $$("<li id='" + tmpNode.tId + "_tmp'></li>", setting);
+            tmpDom.append($$(tmpNode, consts.id.A, setting).clone());
+            tmpDom.css("padding", "0");
+            tmpDom.children("#" + tmpNode.tId + consts.id.A).removeClass(consts.node.CURSELECTED);
+            curNode.append(tmpDom);
+
+            if (i == setting.edit.drag.maxShowNodeNum - 1) {
+              tmpDom = $$("<li id='" + tmpNode.tId + "_moretmp'><a>  ...  </a></li>", setting);
+              curNode.append(tmpDom);
+            }
+          }
+
+          curNode.attr("id", nodes[0].tId + consts.id.UL + "_tmp");
+          curNode.addClass(setting.treeObj.attr("class"));
+          curNode.appendTo(body);
+          tmpArrow = $$("<span class='tmpzTreeMove_arrow'></span>", setting);
+          tmpArrow.attr("id", "zTreeMove_arrow_tmp");
+          tmpArrow.appendTo(body);
+          setting.treeObj.trigger(consts.event.DRAG, [event, setting.treeId, nodes]);
+        }
+
+        if (root.dragFlag == 1) {
+          if (tmpTarget && tmpArrow.attr("id") == event.target.id && tmpTargetNodeId && event.clientX + doc.scrollLeft() + 2 > $("#" + tmpTargetNodeId + consts.id.A, tmpTarget).offset().left) {
+            var xT = $("#" + tmpTargetNodeId + consts.id.A, tmpTarget);
+            event.target = xT.length > 0 ? xT.get(0) : event.target;
+          } else if (tmpTarget) {
+            tmpTarget.removeClass(consts.node.TMPTARGET_TREE);
+            if (tmpTargetNodeId) $("#" + tmpTargetNodeId + consts.id.A, tmpTarget).removeClass(consts.node.TMPTARGET_NODE + "_" + consts.move.TYPE_PREV).removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_NEXT).removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_INNER);
+          }
+
+          tmpTarget = null;
+          tmpTargetNodeId = null; //judge drag & drop in multi ztree
+
+          isOtherTree = false;
+          targetSetting = setting;
+          var settings = data.getSettings();
+
+          for (var s in settings) {
+            if (settings[s].treeId && settings[s].edit.enable && settings[s].treeId != setting.treeId && (event.target.id == settings[s].treeId || $(event.target).parents("#" + settings[s].treeId).length > 0)) {
+              isOtherTree = true;
+              targetSetting = settings[s];
+            }
+          }
+
+          var docScrollTop = doc.scrollTop(),
+              docScrollLeft = doc.scrollLeft(),
+              treeOffset = targetSetting.treeObj.offset(),
+              scrollHeight = targetSetting.treeObj.get(0).scrollHeight,
+              scrollWidth = targetSetting.treeObj.get(0).scrollWidth,
+              dTop = event.clientY + docScrollTop - treeOffset.top,
+              dBottom = targetSetting.treeObj.height() + treeOffset.top - event.clientY - docScrollTop,
+              dLeft = event.clientX + docScrollLeft - treeOffset.left,
+              dRight = targetSetting.treeObj.width() + treeOffset.left - event.clientX - docScrollLeft,
+              isTop = dTop < setting.edit.drag.borderMax && dTop > setting.edit.drag.borderMin,
+              isBottom = dBottom < setting.edit.drag.borderMax && dBottom > setting.edit.drag.borderMin,
+              isLeft = dLeft < setting.edit.drag.borderMax && dLeft > setting.edit.drag.borderMin,
+              isRight = dRight < setting.edit.drag.borderMax && dRight > setting.edit.drag.borderMin,
+              isTreeInner = dTop > setting.edit.drag.borderMin && dBottom > setting.edit.drag.borderMin && dLeft > setting.edit.drag.borderMin && dRight > setting.edit.drag.borderMin,
+              isTreeTop = isTop && targetSetting.treeObj.scrollTop() <= 0,
+              isTreeBottom = isBottom && targetSetting.treeObj.scrollTop() + targetSetting.treeObj.height() + 10 >= scrollHeight,
+              isTreeLeft = isLeft && targetSetting.treeObj.scrollLeft() <= 0,
+              isTreeRight = isRight && targetSetting.treeObj.scrollLeft() + targetSetting.treeObj.width() + 10 >= scrollWidth;
+
+          if (event.target && tools.isChildOrSelf(event.target, targetSetting.treeId)) {
+            //get node <li> dom
+            var targetObj = event.target;
+
+            while (targetObj && targetObj.tagName && !tools.eqs(targetObj.tagName, "li") && targetObj.id != targetSetting.treeId) {
+              targetObj = targetObj.parentNode;
+            }
+
+            var canMove = true; //don't move to self or children of self
+
+            for (i = 0, l = nodes.length; i < l; i++) {
+              tmpNode = nodes[i];
+
+              if (targetObj.id === tmpNode.tId) {
+                canMove = false;
+                break;
+              } else if ($$(tmpNode, setting).find("#" + targetObj.id).length > 0) {
+                canMove = false;
+                break;
+              }
+            }
+
+            if (canMove && event.target && tools.isChildOrSelf(event.target, targetObj.id + consts.id.A)) {
+              tmpTarget = $(targetObj);
+              tmpTargetNodeId = targetObj.id;
+            }
+          } //the mouse must be in zTree
+
+
+          tmpNode = nodes[0];
+
+          if (isTreeInner && tools.isChildOrSelf(event.target, targetSetting.treeId)) {
+            //judge mouse move in root of ztree
+            if (!tmpTarget && (event.target.id == targetSetting.treeId || isTreeTop || isTreeBottom || isTreeLeft || isTreeRight) && (isOtherTree || !isOtherTree && tmpNode.parentTId)) {
+              tmpTarget = targetSetting.treeObj;
+            } //auto scroll top
+
+
+            if (isTop) {
+              targetSetting.treeObj.scrollTop(targetSetting.treeObj.scrollTop() - 10);
+            } else if (isBottom) {
+              targetSetting.treeObj.scrollTop(targetSetting.treeObj.scrollTop() + 10);
+            }
+
+            if (isLeft) {
+              targetSetting.treeObj.scrollLeft(targetSetting.treeObj.scrollLeft() - 10);
+            } else if (isRight) {
+              targetSetting.treeObj.scrollLeft(targetSetting.treeObj.scrollLeft() + 10);
+            } //auto scroll left
+
+
+            if (tmpTarget && tmpTarget != targetSetting.treeObj && tmpTarget.offset().left < targetSetting.treeObj.offset().left) {
+              targetSetting.treeObj.scrollLeft(targetSetting.treeObj.scrollLeft() + tmpTarget.offset().left - targetSetting.treeObj.offset().left);
+            }
+          }
+
+          curNode.css({
+            "top": event.clientY + docScrollTop + 3 + "px",
+            "left": event.clientX + docScrollLeft + 3 + "px"
+          });
+          var dX = 0;
+          var dY = 0;
+
+          if (tmpTarget && tmpTarget.attr("id") != targetSetting.treeId) {
+            var clearMove = function clearMove() {
+              tmpTarget = null;
+              tmpTargetNodeId = "";
+              moveType = consts.move.TYPE_INNER;
+              tmpArrow.css({
+                "display": "none"
+              });
+
+              if (window.zTreeMoveTimer) {
+                clearTimeout(window.zTreeMoveTimer);
+                window.zTreeMoveTargetNodeTId = null;
+              }
+            };
+
+            var tmpTargetNode = tmpTargetNodeId == null ? null : data.getNodeCache(targetSetting, tmpTargetNodeId),
+                isCopy = (event.ctrlKey || event.metaKey) && setting.edit.drag.isMove && setting.edit.drag.isCopy || !setting.edit.drag.isMove && setting.edit.drag.isCopy,
+                isPrev = !!(preNode && tmpTargetNodeId === preNode.tId),
+                isNext = !!(nextNode && tmpTargetNodeId === nextNode.tId),
+                isInner = tmpNode.parentTId && tmpNode.parentTId == tmpTargetNodeId,
+                canPrev = (isCopy || !isNext) && tools.apply(targetSetting.edit.drag.prev, [targetSetting.treeId, nodes, tmpTargetNode], !!targetSetting.edit.drag.prev),
+                canNext = (isCopy || !isPrev) && tools.apply(targetSetting.edit.drag.next, [targetSetting.treeId, nodes, tmpTargetNode], !!targetSetting.edit.drag.next),
+                canInner = (isCopy || !isInner) && !(targetSetting.data.keep.leaf && !data.nodeIsParent(setting, tmpTargetNode)) && tools.apply(targetSetting.edit.drag.inner, [targetSetting.treeId, nodes, tmpTargetNode], !!targetSetting.edit.drag.inner);
+
+            if (!canPrev && !canNext && !canInner) {
+              clearMove();
+            } else {
+              var tmpTargetA = $("#" + tmpTargetNodeId + consts.id.A, tmpTarget),
+                  tmpNextA = tmpTargetNode.isLastNode ? null : $("#" + tmpTargetNode.getNextNode().tId + consts.id.A, tmpTarget.next()),
+                  tmpTop = tmpTargetA.offset().top,
+                  tmpLeft = tmpTargetA.offset().left,
+                  prevPercent = canPrev ? canInner ? 0.25 : canNext ? 0.5 : 1 : -1,
+                  nextPercent = canNext ? canInner ? 0.75 : canPrev ? 0.5 : 0 : -1,
+                  dY_percent = (event.clientY + docScrollTop - tmpTop) / tmpTargetA.height();
+
+              if ((prevPercent == 1 || dY_percent <= prevPercent && dY_percent >= -.2) && canPrev) {
+                dX = 1 - tmpArrow.width();
+                dY = tmpTop - tmpArrow.height() / 2;
+                moveType = consts.move.TYPE_PREV;
+              } else if ((nextPercent == 0 || dY_percent >= nextPercent && dY_percent <= 1.2) && canNext) {
+                dX = 1 - tmpArrow.width();
+                dY = tmpNextA == null || data.nodeIsParent(setting, tmpTargetNode) && tmpTargetNode.open ? tmpTop + tmpTargetA.height() - tmpArrow.height() / 2 : tmpNextA.offset().top - tmpArrow.height() / 2;
+                moveType = consts.move.TYPE_NEXT;
+              } else if (canInner) {
+                dX = 5 - tmpArrow.width();
+                dY = tmpTop;
+                moveType = consts.move.TYPE_INNER;
+              } else {
+                clearMove();
+              }
+
+              if (tmpTarget) {
+                tmpArrow.css({
+                  "display": "block",
+                  "top": dY + "px",
+                  "left": tmpLeft + dX + "px"
+                });
+                tmpTargetA.addClass(consts.node.TMPTARGET_NODE + "_" + moveType);
+
+                if (preTmpTargetNodeId != tmpTargetNodeId || preTmpMoveType != moveType) {
+                  startTime = new Date().getTime();
+                }
+
+                if (tmpTargetNode && data.nodeIsParent(setting, tmpTargetNode) && moveType == consts.move.TYPE_INNER) {
+                  var startTimer = true;
+
+                  if (window.zTreeMoveTimer && window.zTreeMoveTargetNodeTId !== tmpTargetNode.tId) {
+                    clearTimeout(window.zTreeMoveTimer);
+                    window.zTreeMoveTargetNodeTId = null;
+                  } else if (window.zTreeMoveTimer && window.zTreeMoveTargetNodeTId === tmpTargetNode.tId) {
+                    startTimer = false;
+                  }
+
+                  if (startTimer) {
+                    window.zTreeMoveTimer = setTimeout(function () {
+                      if (moveType != consts.move.TYPE_INNER) return;
+
+                      if (tmpTargetNode && data.nodeIsParent(setting, tmpTargetNode) && !tmpTargetNode.open && new Date().getTime() - startTime > targetSetting.edit.drag.autoOpenTime && tools.apply(targetSetting.callback.beforeDragOpen, [targetSetting.treeId, tmpTargetNode], true)) {
+                        view.switchNode(targetSetting, tmpTargetNode);
+
+                        if (targetSetting.edit.drag.autoExpandTrigger) {
+                          targetSetting.treeObj.trigger(consts.event.EXPAND, [targetSetting.treeId, tmpTargetNode]);
+                        }
+                      }
+                    }, targetSetting.edit.drag.autoOpenTime + 50);
+                    window.zTreeMoveTargetNodeTId = tmpTargetNode.tId;
+                  }
+                }
+              }
+            }
+          } else {
+            moveType = consts.move.TYPE_INNER;
+
+            if (tmpTarget && tools.apply(targetSetting.edit.drag.inner, [targetSetting.treeId, nodes, null], !!targetSetting.edit.drag.inner)) {
+              tmpTarget.addClass(consts.node.TMPTARGET_TREE);
+            } else {
+              tmpTarget = null;
+            }
+
+            tmpArrow.css({
+              "display": "none"
+            });
+
+            if (window.zTreeMoveTimer) {
+              clearTimeout(window.zTreeMoveTimer);
+              window.zTreeMoveTargetNodeTId = null;
+            }
+          }
+
+          preTmpTargetNodeId = tmpTargetNodeId;
+          preTmpMoveType = moveType;
+          setting.treeObj.trigger(consts.event.DRAGMOVE, [event, setting.treeId, nodes]);
+        }
+
+        return false;
+      }
+
+      doc.bind("mouseup", _docMouseUp);
+
+      function _docMouseUp(event) {
+        if (window.zTreeMoveTimer) {
+          clearTimeout(window.zTreeMoveTimer);
+          window.zTreeMoveTargetNodeTId = null;
+        }
+
+        preTmpTargetNodeId = null;
+        preTmpMoveType = null;
+        doc.unbind("mousemove", _docMouseMove);
+        doc.unbind("mouseup", _docMouseUp);
+        doc.unbind("selectstart", _docSelect);
+        body.css("cursor", "");
+
+        if (tmpTarget) {
+          tmpTarget.removeClass(consts.node.TMPTARGET_TREE);
+          if (tmpTargetNodeId) $("#" + tmpTargetNodeId + consts.id.A, tmpTarget).removeClass(consts.node.TMPTARGET_NODE + "_" + consts.move.TYPE_PREV).removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_NEXT).removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_INNER);
+        }
+
+        tools.showIfameMask(setting, false);
+        roots.showHoverDom = true;
+        if (root.dragFlag == 0) return;
+        root.dragFlag = 0;
+        var i, l, tmpNode;
+
+        for (i = 0, l = nodes.length; i < l; i++) {
+          tmpNode = nodes[i];
+
+          if (data.nodeIsParent(setting, tmpNode) && root.dragNodeShowBefore[tmpNode.tId] && !tmpNode.open) {
+            view.expandCollapseNode(setting, tmpNode, !tmpNode.open);
+            delete root.dragNodeShowBefore[tmpNode.tId];
+          }
+        }
+
+        if (curNode) curNode.remove();
+        if (tmpArrow) tmpArrow.remove();
+        var isCopy = (event.ctrlKey || event.metaKey) && setting.edit.drag.isMove && setting.edit.drag.isCopy || !setting.edit.drag.isMove && setting.edit.drag.isCopy;
+
+        if (!isCopy && tmpTarget && tmpTargetNodeId && nodes[0].parentTId && tmpTargetNodeId == nodes[0].parentTId && moveType == consts.move.TYPE_INNER) {
+          tmpTarget = null;
+        }
+
+        if (tmpTarget) {
+          var dropCallback = function dropCallback() {
+            if (isOtherTree) {
+              if (!isCopy) {
+                for (var i = 0, l = nodes.length; i < l; i++) {
+                  view.removeNode(setting, nodes[i]);
+                }
+              }
+
+              if (moveType == consts.move.TYPE_INNER) {
+                view.addNodes(targetSetting, dragTargetNode, -1, newNodes);
+              } else {
+                view.addNodes(targetSetting, dragTargetNode.getParentNode(), moveType == consts.move.TYPE_PREV ? dragTargetNode.getIndex() : dragTargetNode.getIndex() + 1, newNodes);
+              }
+            } else {
+              if (isCopy && moveType == consts.move.TYPE_INNER) {
+                view.addNodes(targetSetting, dragTargetNode, -1, newNodes);
+              } else if (isCopy) {
+                view.addNodes(targetSetting, dragTargetNode.getParentNode(), moveType == consts.move.TYPE_PREV ? dragTargetNode.getIndex() : dragTargetNode.getIndex() + 1, newNodes);
+              } else {
+                if (moveType != consts.move.TYPE_NEXT) {
+                  for (i = 0, l = newNodes.length; i < l; i++) {
+                    view.moveNode(targetSetting, dragTargetNode, newNodes[i], moveType, false);
+                  }
+                } else {
+                  for (i = -1, l = newNodes.length - 1; i < l; l--) {
+                    view.moveNode(targetSetting, dragTargetNode, newNodes[l], moveType, false);
+                  }
+                }
+              }
+            }
+
+            view.selectNodes(targetSetting, newNodes);
+            var a = $$(newNodes[0], setting).get(0);
+            view.scrollIntoView(setting, a);
+            setting.treeObj.trigger(consts.event.DROP, [event, targetSetting.treeId, newNodes, dragTargetNode, moveType, isCopy]);
+          };
+
+          var dragTargetNode = tmpTargetNodeId == null ? null : data.getNodeCache(targetSetting, tmpTargetNodeId);
+
+          if (tools.apply(setting.callback.beforeDrop, [targetSetting.treeId, nodes, dragTargetNode, moveType, isCopy], true) == false) {
+            view.selectNodes(sourceSetting, nodes);
+            return;
+          }
+
+          var newNodes = isCopy ? tools.clone(nodes) : nodes;
+
+          if (moveType == consts.move.TYPE_INNER && tools.canAsync(targetSetting, dragTargetNode)) {
+            view.asyncNode(targetSetting, dragTargetNode, false, dropCallback);
+          } else {
+            dropCallback();
+          }
+        } else {
+          view.selectNodes(sourceSetting, nodes);
+          setting.treeObj.trigger(consts.event.DROP, [event, setting.treeId, nodes, null, null, null]);
+        }
+      }
+
+      doc.bind("selectstart", _docSelect);
+
+      function _docSelect() {
+        return false;
+      } // 2018-03-30 FireFox has fixed this issue.
+      //Avoid FireFox's Bug
+      //If zTree Div CSS set 'overflow', so drag node outside of zTree, and event.target is error.
+      // if(eventMouseDown.preventDefault) {
+      // 	eventMouseDown.preventDefault();
+      // }
+
+
+      return true;
+    }
+  },
+      //method of tools for zTree
+  _tools = {
+    getAbs: function getAbs(obj) {
+      var oRect = obj.getBoundingClientRect(),
+          scrollTop = document.body.scrollTop + document.documentElement.scrollTop,
+          scrollLeft = document.body.scrollLeft + document.documentElement.scrollLeft;
+      return [oRect.left + scrollLeft, oRect.top + scrollTop];
+    },
+    inputFocus: function inputFocus(inputObj) {
+      if (inputObj.get(0)) {
+        inputObj.focus();
+        tools.setCursorPosition(inputObj.get(0), inputObj.val().length);
+      }
+    },
+    inputSelect: function inputSelect(inputObj) {
+      if (inputObj.get(0)) {
+        inputObj.focus();
+        inputObj.select();
+      }
+    },
+    setCursorPosition: function setCursorPosition(obj, pos) {
+      if (obj.setSelectionRange) {
+        obj.focus();
+        obj.setSelectionRange(pos, pos);
+      } else if (obj.createTextRange) {
+        var range = obj.createTextRange();
+        range.collapse(true);
+        range.moveEnd('character', pos);
+        range.moveStart('character', pos);
+        range.select();
+      }
+    },
+    showIfameMask: function showIfameMask(setting, showSign) {
+      var root = data.getRoot(setting); //clear full mask
+
+      while (root.dragMaskList.length > 0) {
+        root.dragMaskList[0].remove();
+        root.dragMaskList.shift();
+      }
+
+      if (showSign) {
+        //show mask
+        var iframeList = $$("iframe", setting);
+
+        for (var i = 0, l = iframeList.length; i < l; i++) {
+          var obj = iframeList.get(i),
+              r = tools.getAbs(obj),
+              dragMask = $$("<div id='zTreeMask_" + i + "' class='zTreeMask' style='top:" + r[1] + "px; left:" + r[0] + "px; width:" + obj.offsetWidth + "px; height:" + obj.offsetHeight + "px;'></div>", setting);
+          dragMask.appendTo($$("body", setting));
+          root.dragMaskList.push(dragMask);
+        }
+      }
+    }
+  },
+      //method of operate ztree dom
+  _view = {
+    addEditBtn: function addEditBtn(setting, node) {
+      if (node.editNameFlag || $$(node, consts.id.EDIT, setting).length > 0) {
+        return;
+      }
+
+      if (!tools.apply(setting.edit.showRenameBtn, [setting.treeId, node], setting.edit.showRenameBtn)) {
+        return;
+      }
+
+      var aObj = $$(node, consts.id.A, setting),
+          editStr = "<span class='" + consts.className.BUTTON + " edit' id='" + node.tId + consts.id.EDIT + "' title='" + tools.apply(setting.edit.renameTitle, [setting.treeId, node], setting.edit.renameTitle) + "' treeNode" + consts.id.EDIT + " style='display:none;'></span>";
+      aObj.append(editStr);
+      $$(node, consts.id.EDIT, setting).bind('click', function () {
+        if (!tools.uCanDo(setting) || tools.apply(setting.callback.beforeEditName, [setting.treeId, node], true) == false) return false;
+        view.editNode(setting, node);
+        return false;
+      }).show();
+    },
+    addRemoveBtn: function addRemoveBtn(setting, node) {
+      if (node.editNameFlag || $$(node, consts.id.REMOVE, setting).length > 0) {
+        return;
+      }
+
+      if (!tools.apply(setting.edit.showRemoveBtn, [setting.treeId, node], setting.edit.showRemoveBtn)) {
+        return;
+      }
+
+      var aObj = $$(node, consts.id.A, setting),
+          removeStr = "<span class='" + consts.className.BUTTON + " remove' id='" + node.tId + consts.id.REMOVE + "' title='" + tools.apply(setting.edit.removeTitle, [setting.treeId, node], setting.edit.removeTitle) + "' treeNode" + consts.id.REMOVE + " style='display:none;'></span>";
+      aObj.append(removeStr);
+      $$(node, consts.id.REMOVE, setting).bind('click', function () {
+        if (!tools.uCanDo(setting) || tools.apply(setting.callback.beforeRemove, [setting.treeId, node], true) == false) return false;
+        view.removeNode(setting, node);
+        setting.treeObj.trigger(consts.event.REMOVE, [setting.treeId, node]);
+        return false;
+      }).bind('mousedown', function (eventMouseDown) {
+        return true;
+      }).show();
+    },
+    addHoverDom: function addHoverDom(setting, node) {
+      if (data.getRoots().showHoverDom) {
+        node.isHover = true;
+
+        if (setting.edit.enable) {
+          view.addEditBtn(setting, node);
+          view.addRemoveBtn(setting, node);
+        }
+
+        tools.apply(setting.view.addHoverDom, [setting.treeId, node]);
+      }
+    },
+    cancelCurEditNode: function cancelCurEditNode(setting, forceName, isCancel) {
+      var root = data.getRoot(setting),
+          node = root.curEditNode;
+
+      if (node) {
+        var inputObj = root.curEditInput,
+            newName = forceName ? forceName : isCancel ? data.nodeName(setting, node) : inputObj.val();
+
+        if (tools.apply(setting.callback.beforeRename, [setting.treeId, node, newName, isCancel], true) === false) {
+          return false;
+        }
+
+        data.nodeName(setting, node, newName);
+        var aObj = $$(node, consts.id.A, setting);
+        aObj.removeClass(consts.node.CURSELECTED_EDIT);
+        inputObj.unbind();
+        view.setNodeName(setting, node);
+        node.editNameFlag = false;
+        root.curEditNode = null;
+        root.curEditInput = null;
+        view.selectNode(setting, node, false);
+        setting.treeObj.trigger(consts.event.RENAME, [setting.treeId, node, isCancel]);
+      }
+
+      root.noSelection = true;
+      return true;
+    },
+    editNode: function editNode(setting, node) {
+      var root = data.getRoot(setting);
+      view.editNodeBlur = false;
+
+      if (data.isSelectedNode(setting, node) && root.curEditNode == node && node.editNameFlag) {
+        setTimeout(function () {
+          tools.inputFocus(root.curEditInput);
+        }, 0);
+        return;
+      }
+
+      node.editNameFlag = true;
+      view.removeTreeDom(setting, node);
+      view.cancelCurEditNode(setting);
+      view.selectNode(setting, node, false);
+      $$(node, consts.id.SPAN, setting).html("<input type=text class='rename' id='" + node.tId + consts.id.INPUT + "' treeNode" + consts.id.INPUT + " >");
+      var inputObj = $$(node, consts.id.INPUT, setting);
+      inputObj.attr("value", data.nodeName(setting, node));
+
+      if (setting.edit.editNameSelectAll) {
+        tools.inputSelect(inputObj);
+      } else {
+        tools.inputFocus(inputObj);
+      }
+
+      inputObj.bind('blur', function (event) {
+        if (!view.editNodeBlur) {
+          view.cancelCurEditNode(setting);
+        }
+      }).bind('keydown', function (event) {
+        if (event.keyCode == "13") {
+          view.editNodeBlur = true;
+          view.cancelCurEditNode(setting);
+        } else if (event.keyCode == "27") {
+          view.cancelCurEditNode(setting, null, true);
+        }
+      }).bind('click', function (event) {
+        return false;
+      }).bind('dblclick', function (event) {
+        return false;
+      });
+      $$(node, consts.id.A, setting).addClass(consts.node.CURSELECTED_EDIT);
+      root.curEditInput = inputObj;
+      root.noSelection = false;
+      root.curEditNode = node;
+    },
+    moveNode: function moveNode(setting, targetNode, node, moveType, animateFlag, isSilent) {
+      var root = data.getRoot(setting);
+      if (targetNode == node) return;
+      if (setting.data.keep.leaf && targetNode && !data.nodeIsParent(setting, targetNode) && moveType == consts.move.TYPE_INNER) return;
+      var oldParentNode = node.parentTId ? node.getParentNode() : root,
+          targetNodeIsRoot = targetNode === null || targetNode == root;
+      if (targetNodeIsRoot && targetNode === null) targetNode = root;
+      if (targetNodeIsRoot) moveType = consts.move.TYPE_INNER;
+      var targetParentNode = targetNode.parentTId ? targetNode.getParentNode() : root;
+
+      if (moveType != consts.move.TYPE_PREV && moveType != consts.move.TYPE_NEXT) {
+        moveType = consts.move.TYPE_INNER;
+      }
+
+      if (moveType == consts.move.TYPE_INNER) {
+        if (targetNodeIsRoot) {
+          //parentTId of root node is null
+          node.parentTId = null;
+        } else {
+          if (!data.nodeIsParent(setting, targetNode)) {
+            data.nodeIsParent(setting, targetNode, true);
+            targetNode.open = !!targetNode.open;
+            view.setNodeLineIcos(setting, targetNode);
+          }
+
+          node.parentTId = targetNode.tId;
+        }
+      } //move node Dom
+
+
+      var targetObj, target_ulObj;
+
+      if (targetNodeIsRoot) {
+        targetObj = setting.treeObj;
+        target_ulObj = targetObj;
+      } else {
+        if (!isSilent && moveType == consts.move.TYPE_INNER) {
+          view.expandCollapseNode(setting, targetNode, true, false);
+        } else if (!isSilent) {
+          view.expandCollapseNode(setting, targetNode.getParentNode(), true, false);
+        }
+
+        targetObj = $$(targetNode, setting);
+        target_ulObj = $$(targetNode, consts.id.UL, setting);
+
+        if (!!targetObj.get(0) && !target_ulObj.get(0)) {
+          var ulstr = [];
+          view.makeUlHtml(setting, targetNode, ulstr, '');
+          targetObj.append(ulstr.join(''));
+        }
+
+        target_ulObj = $$(targetNode, consts.id.UL, setting);
+      }
+
+      var nodeDom = $$(node, setting);
+
+      if (!nodeDom.get(0)) {
+        nodeDom = view.appendNodes(setting, node.level, [node], null, -1, false, true).join('');
+      } else if (!targetObj.get(0)) {
+        nodeDom.remove();
+      }
+
+      if (target_ulObj.get(0) && moveType == consts.move.TYPE_INNER) {
+        target_ulObj.append(nodeDom);
+      } else if (targetObj.get(0) && moveType == consts.move.TYPE_PREV) {
+        targetObj.before(nodeDom);
+      } else if (targetObj.get(0) && moveType == consts.move.TYPE_NEXT) {
+        targetObj.after(nodeDom);
+      } //repair the data after move
+
+
+      var i,
+          l,
+          tmpSrcIndex = -1,
+          tmpTargetIndex = 0,
+          oldNeighbor = null,
+          newNeighbor = null,
+          oldLevel = node.level;
+      var oldChildren = data.nodeChildren(setting, oldParentNode);
+      var targetParentChildren = data.nodeChildren(setting, targetParentNode);
+      var targetChildren = data.nodeChildren(setting, targetNode);
+
+      if (node.isFirstNode) {
+        tmpSrcIndex = 0;
+
+        if (oldChildren.length > 1) {
+          oldNeighbor = oldChildren[1];
+          oldNeighbor.isFirstNode = true;
+        }
+      } else if (node.isLastNode) {
+        tmpSrcIndex = oldChildren.length - 1;
+        oldNeighbor = oldChildren[tmpSrcIndex - 1];
+        oldNeighbor.isLastNode = true;
+      } else {
+        for (i = 0, l = oldChildren.length; i < l; i++) {
+          if (oldChildren[i].tId == node.tId) {
+            tmpSrcIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (tmpSrcIndex >= 0) {
+        oldChildren.splice(tmpSrcIndex, 1);
+      }
+
+      if (moveType != consts.move.TYPE_INNER) {
+        for (i = 0, l = targetParentChildren.length; i < l; i++) {
+          if (targetParentChildren[i].tId == targetNode.tId) tmpTargetIndex = i;
+        }
+      }
+
+      if (moveType == consts.move.TYPE_INNER) {
+        if (!targetChildren) {
+          targetChildren = data.nodeChildren(setting, targetNode, []);
+        }
+
+        if (targetChildren.length > 0) {
+          newNeighbor = targetChildren[targetChildren.length - 1];
+          newNeighbor.isLastNode = false;
+        }
+
+        targetChildren.splice(targetChildren.length, 0, node);
+        node.isLastNode = true;
+        node.isFirstNode = targetChildren.length == 1;
+      } else if (targetNode.isFirstNode && moveType == consts.move.TYPE_PREV) {
+        targetParentChildren.splice(tmpTargetIndex, 0, node);
+        newNeighbor = targetNode;
+        newNeighbor.isFirstNode = false;
+        node.parentTId = targetNode.parentTId;
+        node.isFirstNode = true;
+        node.isLastNode = false;
+      } else if (targetNode.isLastNode && moveType == consts.move.TYPE_NEXT) {
+        targetParentChildren.splice(tmpTargetIndex + 1, 0, node);
+        newNeighbor = targetNode;
+        newNeighbor.isLastNode = false;
+        node.parentTId = targetNode.parentTId;
+        node.isFirstNode = false;
+        node.isLastNode = true;
+      } else {
+        if (moveType == consts.move.TYPE_PREV) {
+          targetParentChildren.splice(tmpTargetIndex, 0, node);
+        } else {
+          targetParentChildren.splice(tmpTargetIndex + 1, 0, node);
+        }
+
+        node.parentTId = targetNode.parentTId;
+        node.isFirstNode = false;
+        node.isLastNode = false;
+      }
+
+      data.fixPIdKeyValue(setting, node);
+      data.setSonNodeLevel(setting, node.getParentNode(), node); //repair node what been moved
+
+      view.setNodeLineIcos(setting, node);
+      view.repairNodeLevelClass(setting, node, oldLevel); //repair node's old parentNode dom
+
+      if (!setting.data.keep.parent && oldChildren.length < 1) {
+        //old parentNode has no child nodes
+        data.nodeIsParent(setting, oldParentNode, false);
+        oldParentNode.open = false;
+        var tmp_ulObj = $$(oldParentNode, consts.id.UL, setting),
+            tmp_switchObj = $$(oldParentNode, consts.id.SWITCH, setting),
+            tmp_icoObj = $$(oldParentNode, consts.id.ICON, setting);
+        view.replaceSwitchClass(oldParentNode, tmp_switchObj, consts.folder.DOCU);
+        view.replaceIcoClass(oldParentNode, tmp_icoObj, consts.folder.DOCU);
+        tmp_ulObj.css("display", "none");
+      } else if (oldNeighbor) {
+        //old neigbor node
+        view.setNodeLineIcos(setting, oldNeighbor);
+      } //new neigbor node
+
+
+      if (newNeighbor) {
+        view.setNodeLineIcos(setting, newNeighbor);
+      } //repair checkbox / radio
+
+
+      if (!!setting.check && setting.check.enable && view.repairChkClass) {
+        view.repairChkClass(setting, oldParentNode);
+        view.repairParentChkClassWithSelf(setting, oldParentNode);
+        if (oldParentNode != node.parent) view.repairParentChkClassWithSelf(setting, node);
+      } //expand parents after move
+
+
+      if (!isSilent) {
+        view.expandCollapseParentNode(setting, node.getParentNode(), true, animateFlag);
+      }
+    },
+    removeEditBtn: function removeEditBtn(setting, node) {
+      $$(node, consts.id.EDIT, setting).unbind().remove();
+    },
+    removeRemoveBtn: function removeRemoveBtn(setting, node) {
+      $$(node, consts.id.REMOVE, setting).unbind().remove();
+    },
+    removeTreeDom: function removeTreeDom(setting, node) {
+      node.isHover = false;
+      view.removeEditBtn(setting, node);
+      view.removeRemoveBtn(setting, node);
+      tools.apply(setting.view.removeHoverDom, [setting.treeId, node]);
+    },
+    repairNodeLevelClass: function repairNodeLevelClass(setting, node, oldLevel) {
+      if (oldLevel === node.level) return;
+      var liObj = $$(node, setting),
+          aObj = $$(node, consts.id.A, setting),
+          ulObj = $$(node, consts.id.UL, setting),
+          oldClass = consts.className.LEVEL + oldLevel,
+          newClass = consts.className.LEVEL + node.level;
+      liObj.removeClass(oldClass);
+      liObj.addClass(newClass);
+      aObj.removeClass(oldClass);
+      aObj.addClass(newClass);
+      ulObj.removeClass(oldClass);
+      ulObj.addClass(newClass);
+    },
+    selectNodes: function selectNodes(setting, nodes) {
+      for (var i = 0, l = nodes.length; i < l; i++) {
+        view.selectNode(setting, nodes[i], i > 0);
+      }
+    }
+  },
+      _z = {
+    tools: _tools,
+    view: _view,
+    event: _event,
+    data: _data
+  };
+
+  $.extend(true, $.fn.zTree.consts, _consts);
+  $.extend(true, $.fn.zTree._z, _z);
+  var zt = $.fn.zTree,
+      tools = zt._z.tools,
+      consts = zt.consts,
+      view = zt._z.view,
+      data = zt._z.data,
+      event = zt._z.event,
+      $$ = tools.$;
+  data.exSetting(_setting);
+  data.addInitBind(_bindEvent);
+  data.addInitUnBind(_unbindEvent);
+  data.addInitCache(_initCache);
+  data.addInitNode(_initNode);
+  data.addInitProxy(_eventProxy);
+  data.addInitRoot(_initRoot);
+  data.addZTreeTools(_zTreeTools);
+  var _cancelPreSelectedNode = view.cancelPreSelectedNode;
+
+  view.cancelPreSelectedNode = function (setting, node) {
+    var list = data.getRoot(setting).curSelectedList;
+
+    for (var i = 0, j = list.length; i < j; i++) {
+      if (!node || node === list[i]) {
+        view.removeTreeDom(setting, list[i]);
+        if (node) break;
+      }
+    }
+
+    if (_cancelPreSelectedNode) _cancelPreSelectedNode.apply(view, arguments);
+  };
+
+  var _createNodes = view.createNodes;
+
+  view.createNodes = function (setting, level, nodes, parentNode, index) {
+    if (_createNodes) {
+      _createNodes.apply(view, arguments);
+    }
+
+    if (!nodes) return;
+
+    if (view.repairParentChkClassWithSelf) {
+      view.repairParentChkClassWithSelf(setting, parentNode);
+    }
+  };
+
+  var _makeNodeUrl = view.makeNodeUrl;
+
+  view.makeNodeUrl = function (setting, node) {
+    return setting.edit.enable ? null : _makeNodeUrl.apply(view, arguments);
+  };
+
+  var _removeNode = view.removeNode;
+
+  view.removeNode = function (setting, node) {
+    var root = data.getRoot(setting);
+    if (root.curEditNode === node) root.curEditNode = null;
+
+    if (_removeNode) {
+      _removeNode.apply(view, arguments);
+    }
+  };
+
+  var _selectNode = view.selectNode;
+
+  view.selectNode = function (setting, node, addFlag) {
+    var root = data.getRoot(setting);
+
+    if (data.isSelectedNode(setting, node) && root.curEditNode == node && node.editNameFlag) {
+      return false;
+    }
+
+    if (_selectNode) _selectNode.apply(view, arguments);
+    view.addHoverDom(setting, node);
+    return true;
+  };
+
+  var _uCanDo = tools.uCanDo;
+
+  tools.uCanDo = function (setting, e) {
+    var root = data.getRoot(setting);
+
+    if (e && (tools.eqs(e.type, "mouseover") || tools.eqs(e.type, "mouseout") || tools.eqs(e.type, "mousedown") || tools.eqs(e.type, "mouseup"))) {
+      return true;
+    }
+
+    if (root.curEditNode) {
+      view.editNodeBlur = false;
+      root.curEditInput.focus();
+    }
+
+    return !root.curEditNode && (_uCanDo ? _uCanDo.apply(view, arguments) : true);
+  };
+})(jQuery);
+
+/***/ }),
+
+/***/ "8079":
+/***/ (function(module, exports, __webpack_require__) {
+
+var global = __webpack_require__("7726");
+var macrotask = __webpack_require__("1991").set;
+var Observer = global.MutationObserver || global.WebKitMutationObserver;
+var process = global.process;
+var Promise = global.Promise;
+var isNode = __webpack_require__("2d95")(process) == 'process';
+
+module.exports = function () {
+  var head, last, notify;
+
+  var flush = function () {
+    var parent, fn;
+    if (isNode && (parent = process.domain)) parent.exit();
+    while (head) {
+      fn = head.fn;
+      head = head.next;
+      try {
+        fn();
+      } catch (e) {
+        if (head) notify();
+        else last = undefined;
+        throw e;
+      }
+    } last = undefined;
+    if (parent) parent.enter();
+  };
+
+  // Node.js
+  if (isNode) {
+    notify = function () {
+      process.nextTick(flush);
+    };
+  // browsers with MutationObserver, except iOS Safari - https://github.com/zloirock/core-js/issues/339
+  } else if (Observer && !(global.navigator && global.navigator.standalone)) {
+    var toggle = true;
+    var node = document.createTextNode('');
+    new Observer(flush).observe(node, { characterData: true }); // eslint-disable-line no-new
+    notify = function () {
+      node.data = toggle = !toggle;
+    };
+  // environments with maybe non-completely correct, but existent Promise
+  } else if (Promise && Promise.resolve) {
+    // Promise.resolve without an argument throws an error in LG WebOS 2
+    var promise = Promise.resolve(undefined);
+    notify = function () {
+      promise.then(flush);
+    };
+  // for other environments - macrotask based on:
+  // - setImmediate
+  // - MessageChannel
+  // - window.postMessag
+  // - onreadystatechange
+  // - setTimeout
+  } else {
+    notify = function () {
+      // strange IE + webpack dev server bug - use .call(global)
+      macrotask.call(global, flush);
+    };
+  }
+
+  return function (fn) {
+    var task = { fn: fn, next: undefined };
+    if (last) last.next = task;
+    if (!head) {
+      head = task;
+      notify();
+    } last = task;
+  };
+};
+
+
+/***/ }),
+
 /***/ "8378":
 /***/ (function(module, exports) {
 
 var core = module.exports = { version: '2.6.12' };
 if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
+
+
+/***/ }),
+
+/***/ "84f2":
+/***/ (function(module, exports) {
+
+module.exports = {};
 
 
 /***/ }),
@@ -12317,6 +17142,494 @@ exports.f = __webpack_require__("9e1e") ? Object.defineProperty : function defin
   return O;
 };
 
+
+/***/ }),
+
+/***/ "884e":
+/***/ (function(module, exports) {
+
+/*
+ * JQuery zTree exHideNodes
+ * v3.5.46
+ * http://treejs.cn/
+ *
+ * Copyright (c) 2010 Hunter.z
+ *
+ * Licensed same as jquery - MIT License
+ * http://www.opensource.org/licenses/mit-license.php
+ *
+ * Date: 2020-11-21
+ */
+(function ($) {
+  var _setting = {
+    data: {
+      key: {
+        isHidden: "isHidden"
+      }
+    }
+  }; //default init node of exLib
+
+  var _initNode = function _initNode(setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
+    var isHidden = data.isHidden(setting, n);
+    data.isHidden(setting, n, isHidden);
+    data.initHideForExCheck(setting, n);
+  },
+      //add dom for check
+  _beforeA = function _beforeA(setting, node, html) {},
+      //update zTreeObj, add method of exLib
+  _zTreeTools = function _zTreeTools(setting, zTreeTools) {
+    zTreeTools.showNodes = function (nodes, options) {
+      view.showNodes(setting, nodes, options);
+    };
+
+    zTreeTools.showNode = function (node, options) {
+      if (!node) {
+        return;
+      }
+
+      view.showNodes(setting, [node], options);
+    };
+
+    zTreeTools.hideNodes = function (nodes, options) {
+      view.hideNodes(setting, nodes, options);
+    };
+
+    zTreeTools.hideNode = function (node, options) {
+      if (!node) {
+        return;
+      }
+
+      view.hideNodes(setting, [node], options);
+    };
+
+    var _checkNode = zTreeTools.checkNode;
+
+    if (_checkNode) {
+      zTreeTools.checkNode = function (node, checked, checkTypeFlag, callbackFlag) {
+        if (!!node && !!data.isHidden(setting, node)) {
+          return;
+        }
+
+        _checkNode.apply(zTreeTools, arguments);
+      };
+    }
+  },
+      //method of operate data
+  _data = {
+    initHideForExCheck: function initHideForExCheck(setting, n) {
+      var isHidden = data.isHidden(setting, n);
+
+      if (isHidden && setting.check && setting.check.enable) {
+        if (typeof n._nocheck == "undefined") {
+          n._nocheck = !!n.nocheck;
+          n.nocheck = true;
+        }
+
+        n.check_Child_State = -1;
+
+        if (view.repairParentChkClassWithSelf) {
+          view.repairParentChkClassWithSelf(setting, n);
+        }
+      }
+    },
+    initShowForExCheck: function initShowForExCheck(setting, n) {
+      var isHidden = data.isHidden(setting, n);
+
+      if (!isHidden && setting.check && setting.check.enable) {
+        if (typeof n._nocheck != "undefined") {
+          n.nocheck = n._nocheck;
+          delete n._nocheck;
+        }
+
+        if (view.setChkClass) {
+          var checkObj = $$(n, consts.id.CHECK, setting);
+          view.setChkClass(setting, checkObj, n);
+        }
+
+        if (view.repairParentChkClassWithSelf) {
+          view.repairParentChkClassWithSelf(setting, n);
+        }
+      }
+    }
+  },
+      //method of operate ztree dom
+  _view = {
+    clearOldFirstNode: function clearOldFirstNode(setting, node) {
+      var n = node.getNextNode();
+
+      while (!!n) {
+        if (n.isFirstNode) {
+          n.isFirstNode = false;
+          view.setNodeLineIcos(setting, n);
+          break;
+        }
+
+        if (n.isLastNode) {
+          break;
+        }
+
+        n = n.getNextNode();
+      }
+    },
+    clearOldLastNode: function clearOldLastNode(setting, node, openFlag) {
+      var n = node.getPreNode();
+
+      while (!!n) {
+        if (n.isLastNode) {
+          n.isLastNode = false;
+
+          if (openFlag) {
+            view.setNodeLineIcos(setting, n);
+          }
+
+          break;
+        }
+
+        if (n.isFirstNode) {
+          break;
+        }
+
+        n = n.getPreNode();
+      }
+    },
+    makeDOMNodeMainBefore: function makeDOMNodeMainBefore(html, setting, node, isParent) {
+      var isHidden = data.isHidden(setting, node);
+      html.push("<li ", isHidden ? "style='display:none;' " : "", "id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', consts.className.MAIN, '_', node.open ? consts.folder.OPEN : consts.folder.CLOSE, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, "' tabindex='0' hidefocus='true' treenode>");
+    },
+    showNode: function showNode(setting, node, options) {
+      data.isHidden(setting, node, false);
+      data.initShowForExCheck(setting, node);
+      $$(node, setting).show();
+    },
+    showNodes: function showNodes(setting, nodes, options) {
+      if (!nodes || nodes.length == 0) {
+        return;
+      }
+
+      var pList = {},
+          i,
+          j;
+
+      for (i = 0, j = nodes.length; i < j; i++) {
+        var n = nodes[i];
+
+        if (!pList[n.parentTId]) {
+          var pn = n.getParentNode();
+          pList[n.parentTId] = pn === null ? data.getRoot(setting) : n.getParentNode();
+        }
+
+        view.showNode(setting, n, options);
+      }
+
+      for (var tId in pList) {
+        var children = data.nodeChildren(setting, pList[tId]);
+        view.setFirstNodeForShow(setting, children);
+        view.setLastNodeForShow(setting, children);
+      }
+    },
+    hideNode: function hideNode(setting, node, options) {
+      data.isHidden(setting, node, true);
+      node.isFirstNode = false;
+      node.isLastNode = false;
+      data.initHideForExCheck(setting, node);
+      view.cancelPreSelectedNode(setting, node);
+      $$(node, setting).hide();
+    },
+    hideNodes: function hideNodes(setting, nodes, options) {
+      if (!nodes || nodes.length == 0) {
+        return;
+      }
+
+      var pList = {},
+          i,
+          j;
+
+      for (i = 0, j = nodes.length; i < j; i++) {
+        var n = nodes[i];
+
+        if ((n.isFirstNode || n.isLastNode) && !pList[n.parentTId]) {
+          var pn = n.getParentNode();
+          pList[n.parentTId] = pn === null ? data.getRoot(setting) : n.getParentNode();
+        }
+
+        view.hideNode(setting, n, options);
+      }
+
+      for (var tId in pList) {
+        var children = data.nodeChildren(setting, pList[tId]);
+        view.setFirstNodeForHide(setting, children);
+        view.setLastNodeForHide(setting, children);
+      }
+    },
+    setFirstNode: function setFirstNode(setting, parentNode) {
+      var children = data.nodeChildren(setting, parentNode);
+      var isHidden = data.isHidden(setting, children[0], false);
+
+      if (children.length > 0 && !isHidden) {
+        children[0].isFirstNode = true;
+      } else if (children.length > 0) {
+        view.setFirstNodeForHide(setting, children);
+      }
+    },
+    setLastNode: function setLastNode(setting, parentNode) {
+      var children = data.nodeChildren(setting, parentNode);
+      var isHidden = data.isHidden(setting, children[0]);
+
+      if (children.length > 0 && !isHidden) {
+        children[children.length - 1].isLastNode = true;
+      } else if (children.length > 0) {
+        view.setLastNodeForHide(setting, children);
+      }
+    },
+    setFirstNodeForHide: function setFirstNodeForHide(setting, nodes) {
+      var n, i, j;
+
+      for (i = 0, j = nodes.length; i < j; i++) {
+        n = nodes[i];
+
+        if (n.isFirstNode) {
+          break;
+        }
+
+        var isHidden = data.isHidden(setting, n);
+
+        if (!isHidden && !n.isFirstNode) {
+          n.isFirstNode = true;
+          view.setNodeLineIcos(setting, n);
+          break;
+        } else {
+          n = null;
+        }
+      }
+
+      return n;
+    },
+    setFirstNodeForShow: function setFirstNodeForShow(setting, nodes) {
+      var n, i, j, first, old;
+
+      for (i = 0, j = nodes.length; i < j; i++) {
+        n = nodes[i];
+        var isHidden = data.isHidden(setting, n);
+
+        if (!first && !isHidden && n.isFirstNode) {
+          first = n;
+          break;
+        } else if (!first && !isHidden && !n.isFirstNode) {
+          n.isFirstNode = true;
+          first = n;
+          view.setNodeLineIcos(setting, n);
+        } else if (first && n.isFirstNode) {
+          n.isFirstNode = false;
+          old = n;
+          view.setNodeLineIcos(setting, n);
+          break;
+        } else {
+          n = null;
+        }
+      }
+
+      return {
+        "new": first,
+        "old": old
+      };
+    },
+    setLastNodeForHide: function setLastNodeForHide(setting, nodes) {
+      var n, i;
+
+      for (i = nodes.length - 1; i >= 0; i--) {
+        n = nodes[i];
+
+        if (n.isLastNode) {
+          break;
+        }
+
+        var isHidden = data.isHidden(setting, n);
+
+        if (!isHidden && !n.isLastNode) {
+          n.isLastNode = true;
+          view.setNodeLineIcos(setting, n);
+          break;
+        } else {
+          n = null;
+        }
+      }
+
+      return n;
+    },
+    setLastNodeForShow: function setLastNodeForShow(setting, nodes) {
+      var n, i, j, last, old;
+
+      for (i = nodes.length - 1; i >= 0; i--) {
+        n = nodes[i];
+        var isHidden = data.isHidden(setting, n);
+
+        if (!last && !isHidden && n.isLastNode) {
+          last = n;
+          break;
+        } else if (!last && !isHidden && !n.isLastNode) {
+          n.isLastNode = true;
+          last = n;
+          view.setNodeLineIcos(setting, n);
+        } else if (last && n.isLastNode) {
+          n.isLastNode = false;
+          old = n;
+          view.setNodeLineIcos(setting, n);
+          break;
+        } else {
+          n = null;
+        }
+      }
+
+      return {
+        "new": last,
+        "old": old
+      };
+    }
+  },
+      _z = {
+    view: _view,
+    data: _data
+  };
+
+  $.extend(true, $.fn.zTree._z, _z);
+  var zt = $.fn.zTree,
+      tools = zt._z.tools,
+      consts = zt.consts,
+      view = zt._z.view,
+      data = zt._z.data,
+      event = zt._z.event,
+      $$ = tools.$;
+
+  data.isHidden = function (setting, node, newIsHidden) {
+    if (!node) {
+      return false;
+    }
+
+    var key = setting.data.key.isHidden;
+
+    if (typeof newIsHidden !== 'undefined') {
+      if (typeof newIsHidden === "string") {
+        newIsHidden = tools.eqs(newIsHidden, "true");
+      }
+
+      newIsHidden = !!newIsHidden;
+      node[key] = newIsHidden;
+    } else if (typeof node[key] == "string") {
+      node[key] = tools.eqs(node[key], "true");
+    } else {
+      node[key] = !!node[key];
+    }
+
+    return node[key];
+  };
+
+  data.exSetting(_setting);
+  data.addInitNode(_initNode);
+  data.addBeforeA(_beforeA);
+  data.addZTreeTools(_zTreeTools); //	Override method in core
+
+  var _dInitNode = data.initNode;
+
+  data.initNode = function (setting, level, node, parentNode, isFirstNode, isLastNode, openFlag) {
+    var tmpPNode = parentNode ? parentNode : data.getRoot(setting),
+        children = tmpPNode[setting.data.key.children];
+    data.tmpHideFirstNode = view.setFirstNodeForHide(setting, children);
+    data.tmpHideLastNode = view.setLastNodeForHide(setting, children);
+
+    if (openFlag) {
+      view.setNodeLineIcos(setting, data.tmpHideFirstNode);
+      view.setNodeLineIcos(setting, data.tmpHideLastNode);
+    }
+
+    isFirstNode = data.tmpHideFirstNode === node;
+    isLastNode = data.tmpHideLastNode === node;
+    if (_dInitNode) _dInitNode.apply(data, arguments);
+
+    if (openFlag && isLastNode) {
+      view.clearOldLastNode(setting, node, openFlag);
+    }
+  };
+
+  var _makeChkFlag = data.makeChkFlag;
+
+  if (!!_makeChkFlag) {
+    data.makeChkFlag = function (setting, node) {
+      if (!!node && !!data.isHidden(setting, node)) {
+        return;
+      }
+
+      _makeChkFlag.apply(data, arguments);
+    };
+  }
+
+  var _getTreeCheckedNodes = data.getTreeCheckedNodes;
+
+  if (!!_getTreeCheckedNodes) {
+    data.getTreeCheckedNodes = function (setting, nodes, checked, results) {
+      if (!!nodes && nodes.length > 0) {
+        var p = nodes[0].getParentNode();
+
+        if (!!p && !!data.isHidden(setting, p)) {
+          return [];
+        }
+      }
+
+      return _getTreeCheckedNodes.apply(data, arguments);
+    };
+  }
+
+  var _getTreeChangeCheckedNodes = data.getTreeChangeCheckedNodes;
+
+  if (!!_getTreeChangeCheckedNodes) {
+    data.getTreeChangeCheckedNodes = function (setting, nodes, results) {
+      if (!!nodes && nodes.length > 0) {
+        var p = nodes[0].getParentNode();
+
+        if (!!p && !!data.isHidden(setting, p)) {
+          return [];
+        }
+      }
+
+      return _getTreeChangeCheckedNodes.apply(data, arguments);
+    };
+  }
+
+  var _expandCollapseSonNode = view.expandCollapseSonNode;
+
+  if (!!_expandCollapseSonNode) {
+    view.expandCollapseSonNode = function (setting, node, expandFlag, animateFlag, callback) {
+      if (!!node && !!data.isHidden(setting, node)) {
+        return;
+      }
+
+      _expandCollapseSonNode.apply(view, arguments);
+    };
+  }
+
+  var _setSonNodeCheckBox = view.setSonNodeCheckBox;
+
+  if (!!_setSonNodeCheckBox) {
+    view.setSonNodeCheckBox = function (setting, node, value, srcNode) {
+      if (!!node && !!data.isHidden(setting, node)) {
+        return;
+      }
+
+      _setSonNodeCheckBox.apply(view, arguments);
+    };
+  }
+
+  var _repairParentChkClassWithSelf = view.repairParentChkClassWithSelf;
+
+  if (!!_repairParentChkClassWithSelf) {
+    view.repairParentChkClassWithSelf = function (setting, node) {
+      if (!!node && !!data.isHidden(setting, node)) {
+        return;
+      }
+
+      _repairParentChkClassWithSelf.apply(view, arguments);
+    };
+  }
+})(jQuery);
 
 /***/ }),
 
@@ -12595,3888 +17908,6 @@ exports.f = Object.getOwnPropertyNames || function getOwnPropertyNames(O) {
 
 /***/ }),
 
-/***/ "91e5":
-/***/ (function(module, exports) {
-
-/*
- * JQuery zTree core
- * v3.5.46
- * http://treejs.cn/
- *
- * Copyright (c) 2010 Hunter.z
- *
- * Licensed same as jquery - MIT License
- * http://www.opensource.org/licenses/mit-license.php
- *
- * Date: 2020-11-21
- */
-
-(function ($) {
-  var settings = {}, roots = {}, caches = {},
-    //default consts of core
-    _consts = {
-      className: {
-        BUTTON: "button",
-        LEVEL: "level",
-        ICO_LOADING: "ico_loading",
-        SWITCH: "switch",
-        NAME: 'node_name'
-      },
-      event: {
-        NODECREATED: "ztree_nodeCreated",
-        CLICK: "ztree_click",
-        EXPAND: "ztree_expand",
-        COLLAPSE: "ztree_collapse",
-        ASYNC_SUCCESS: "ztree_async_success",
-        ASYNC_ERROR: "ztree_async_error",
-        REMOVE: "ztree_remove",
-        SELECTED: "ztree_selected",
-        UNSELECTED: "ztree_unselected"
-      },
-      id: {
-        A: "_a",
-        ICON: "_ico",
-        SPAN: "_span",
-        SWITCH: "_switch",
-        UL: "_ul"
-      },
-      line: {
-        ROOT: "root",
-        ROOTS: "roots",
-        CENTER: "center",
-        BOTTOM: "bottom",
-        NOLINE: "noline",
-        LINE: "line"
-      },
-      folder: {
-        OPEN: "open",
-        CLOSE: "close",
-        DOCU: "docu"
-      },
-      node: {
-        CURSELECTED: "curSelectedNode"
-      }
-    },
-    //default setting of core
-    _setting = {
-      treeId: "",
-      treeObj: null,
-      view: {
-        addDiyDom: null,
-        autoCancelSelected: true,
-        dblClickExpand: true,
-        expandSpeed: "fast",
-        fontCss: {},
-        nodeClasses: {},
-        nameIsHTML: false,
-        selectedMulti: true,
-        showIcon: true,
-        showLine: true,
-        showTitle: true,
-        txtSelectedEnable: false
-      },
-      data: {
-        key: {
-          isParent: "isParent",
-          children: "children",
-          name: "name",
-          title: "",
-          url: "url",
-          icon: "icon"
-        },
-        render: {
-          name: null,
-          title: null,
-        },
-        simpleData: {
-          enable: false,
-          idKey: "id",
-          pIdKey: "pId",
-          rootPId: null
-        },
-        keep: {
-          parent: false,
-          leaf: false
-        }
-      },
-      async: {
-        enable: false,
-        contentType: "application/x-www-form-urlencoded",
-        type: "post",
-        dataType: "text",
-        headers: {},
-        xhrFields: {},
-        url: "",
-        autoParam: [],
-        otherParam: [],
-        dataFilter: null
-      },
-      callback: {
-        beforeAsync: null,
-        beforeClick: null,
-        beforeDblClick: null,
-        beforeRightClick: null,
-        beforeMouseDown: null,
-        beforeMouseUp: null,
-        beforeExpand: null,
-        beforeCollapse: null,
-        beforeRemove: null,
-
-        onAsyncError: null,
-        onAsyncSuccess: null,
-        onNodeCreated: null,
-        onClick: null,
-        onDblClick: null,
-        onRightClick: null,
-        onMouseDown: null,
-        onMouseUp: null,
-        onExpand: null,
-        onCollapse: null,
-        onRemove: null
-      }
-    },
-    //default root of core
-    //zTree use root to save full data
-    _initRoot = function (setting) {
-      var r = data.getRoot(setting);
-      if (!r) {
-        r = {};
-        data.setRoot(setting, r);
-      }
-      data.nodeChildren(setting, r, []);
-      r.expandTriggerFlag = false;
-      r.curSelectedList = [];
-      r.noSelection = true;
-      r.createdNodes = [];
-      r.zId = 0;
-      r._ver = (new Date()).getTime();
-    },
-    //default cache of core
-    _initCache = function (setting) {
-      var c = data.getCache(setting);
-      if (!c) {
-        c = {};
-        data.setCache(setting, c);
-      }
-      c.nodes = [];
-      c.doms = [];
-    },
-    //default bindEvent of core
-    _bindEvent = function (setting) {
-      var o = setting.treeObj,
-        c = consts.event;
-      o.bind(c.NODECREATED, function (event, treeId, node) {
-        tools.apply(setting.callback.onNodeCreated, [event, treeId, node]);
-      });
-
-      o.bind(c.CLICK, function (event, srcEvent, treeId, node, clickFlag) {
-        tools.apply(setting.callback.onClick, [srcEvent, treeId, node, clickFlag]);
-      });
-
-      o.bind(c.EXPAND, function (event, treeId, node) {
-        tools.apply(setting.callback.onExpand, [event, treeId, node]);
-      });
-
-      o.bind(c.COLLAPSE, function (event, treeId, node) {
-        tools.apply(setting.callback.onCollapse, [event, treeId, node]);
-      });
-
-      o.bind(c.ASYNC_SUCCESS, function (event, treeId, node, msg) {
-        tools.apply(setting.callback.onAsyncSuccess, [event, treeId, node, msg]);
-      });
-
-      o.bind(c.ASYNC_ERROR, function (event, treeId, node, XMLHttpRequest, textStatus, errorThrown) {
-        tools.apply(setting.callback.onAsyncError, [event, treeId, node, XMLHttpRequest, textStatus, errorThrown]);
-      });
-
-      o.bind(c.REMOVE, function (event, treeId, treeNode) {
-        tools.apply(setting.callback.onRemove, [event, treeId, treeNode]);
-      });
-
-      o.bind(c.SELECTED, function (event, treeId, node) {
-        tools.apply(setting.callback.onSelected, [treeId, node]);
-      });
-      o.bind(c.UNSELECTED, function (event, treeId, node) {
-        tools.apply(setting.callback.onUnSelected, [treeId, node]);
-      });
-    },
-    _unbindEvent = function (setting) {
-      var o = setting.treeObj,
-        c = consts.event;
-      o.unbind(c.NODECREATED)
-        .unbind(c.CLICK)
-        .unbind(c.EXPAND)
-        .unbind(c.COLLAPSE)
-        .unbind(c.ASYNC_SUCCESS)
-        .unbind(c.ASYNC_ERROR)
-        .unbind(c.REMOVE)
-        .unbind(c.SELECTED)
-        .unbind(c.UNSELECTED);
-    },
-    //default event proxy of core
-    _eventProxy = function (event) {
-      var target = event.target,
-        setting = data.getSetting(event.data.treeId),
-        tId = "", node = null,
-        nodeEventType = "", treeEventType = "",
-        nodeEventCallback = null, treeEventCallback = null,
-        tmp = null;
-
-      if (tools.eqs(event.type, "mousedown")) {
-        treeEventType = "mousedown";
-      } else if (tools.eqs(event.type, "mouseup")) {
-        treeEventType = "mouseup";
-      } else if (tools.eqs(event.type, "contextmenu")) {
-        treeEventType = "contextmenu";
-      } else if (tools.eqs(event.type, "click")) {
-        if (tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.SWITCH) !== null) {
-          tId = tools.getNodeMainDom(target).id;
-          nodeEventType = "switchNode";
-        } else {
-          tmp = tools.getMDom(setting, target, [{tagName: "a", attrName: "treeNode" + consts.id.A}]);
-          if (tmp) {
-            tId = tools.getNodeMainDom(tmp).id;
-            nodeEventType = "clickNode";
-          }
-        }
-      } else if (tools.eqs(event.type, "dblclick")) {
-        treeEventType = "dblclick";
-        tmp = tools.getMDom(setting, target, [{tagName: "a", attrName: "treeNode" + consts.id.A}]);
-        if (tmp) {
-          tId = tools.getNodeMainDom(tmp).id;
-          nodeEventType = "switchNode";
-        }
-      }
-      if (treeEventType.length > 0 && tId.length == 0) {
-        tmp = tools.getMDom(setting, target, [{tagName: "a", attrName: "treeNode" + consts.id.A}]);
-        if (tmp) {
-          tId = tools.getNodeMainDom(tmp).id;
-        }
-      }
-      // event to node
-      if (tId.length > 0) {
-        node = data.getNodeCache(setting, tId);
-        switch (nodeEventType) {
-          case "switchNode" :
-            var isParent = data.nodeIsParent(setting, node);
-            if (!isParent) {
-              nodeEventType = "";
-            } else if (tools.eqs(event.type, "click")
-              || (tools.eqs(event.type, "dblclick") && tools.apply(setting.view.dblClickExpand, [setting.treeId, node], setting.view.dblClickExpand))) {
-              nodeEventCallback = handler.onSwitchNode;
-            } else {
-              nodeEventType = "";
-            }
-            break;
-          case "clickNode" :
-            nodeEventCallback = handler.onClickNode;
-            break;
-        }
-      }
-      // event to zTree
-      switch (treeEventType) {
-        case "mousedown" :
-          treeEventCallback = handler.onZTreeMousedown;
-          break;
-        case "mouseup" :
-          treeEventCallback = handler.onZTreeMouseup;
-          break;
-        case "dblclick" :
-          treeEventCallback = handler.onZTreeDblclick;
-          break;
-        case "contextmenu" :
-          treeEventCallback = handler.onZTreeContextmenu;
-          break;
-      }
-      var proxyResult = {
-        stop: false,
-        node: node,
-        nodeEventType: nodeEventType,
-        nodeEventCallback: nodeEventCallback,
-        treeEventType: treeEventType,
-        treeEventCallback: treeEventCallback
-      };
-      return proxyResult
-    },
-    //default init node of core
-    _initNode = function (setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
-      if (!n) return;
-      var r = data.getRoot(setting),
-        children = data.nodeChildren(setting, n);
-      n.level = level;
-      n.tId = setting.treeId + "_" + (++r.zId);
-      n.parentTId = parentNode ? parentNode.tId : null;
-      n.open = (typeof n.open == "string") ? tools.eqs(n.open, "true") : !!n.open;
-      var isParent = data.nodeIsParent(setting, n);
-      if (tools.isArray(children)) {
-        data.nodeIsParent(setting, n, true);
-        n.zAsync = true;
-      } else {
-        isParent = data.nodeIsParent(setting, n, isParent);
-        n.open = (isParent && !setting.async.enable) ? n.open : false;
-        n.zAsync = !isParent;
-      }
-      n.isFirstNode = isFirstNode;
-      n.isLastNode = isLastNode;
-      n.getParentNode = function () {
-        return data.getNodeCache(setting, n.parentTId);
-      };
-      n.getPreNode = function () {
-        return data.getPreNode(setting, n);
-      };
-      n.getNextNode = function () {
-        return data.getNextNode(setting, n);
-      };
-      n.getIndex = function () {
-        return data.getNodeIndex(setting, n);
-      };
-      n.getPath = function () {
-        return data.getNodePath(setting, n);
-      };
-      n.isAjaxing = false;
-      data.fixPIdKeyValue(setting, n);
-    },
-    _init = {
-      bind: [_bindEvent],
-      unbind: [_unbindEvent],
-      caches: [_initCache],
-      nodes: [_initNode],
-      proxys: [_eventProxy],
-      roots: [_initRoot],
-      beforeA: [],
-      afterA: [],
-      innerBeforeA: [],
-      innerAfterA: [],
-      zTreeTools: []
-    },
-    //method of operate data
-    data = {
-      addNodeCache: function (setting, node) {
-        data.getCache(setting).nodes[data.getNodeCacheId(node.tId)] = node;
-      },
-      getNodeCacheId: function (tId) {
-        return tId.substring(tId.lastIndexOf("_") + 1);
-      },
-      addAfterA: function (afterA) {
-        _init.afterA.push(afterA);
-      },
-      addBeforeA: function (beforeA) {
-        _init.beforeA.push(beforeA);
-      },
-      addInnerAfterA: function (innerAfterA) {
-        _init.innerAfterA.push(innerAfterA);
-      },
-      addInnerBeforeA: function (innerBeforeA) {
-        _init.innerBeforeA.push(innerBeforeA);
-      },
-      addInitBind: function (bindEvent) {
-        _init.bind.push(bindEvent);
-      },
-      addInitUnBind: function (unbindEvent) {
-        _init.unbind.push(unbindEvent);
-      },
-      addInitCache: function (initCache) {
-        _init.caches.push(initCache);
-      },
-      addInitNode: function (initNode) {
-        _init.nodes.push(initNode);
-      },
-      addInitProxy: function (initProxy, isFirst) {
-        if (!!isFirst) {
-          _init.proxys.splice(0, 0, initProxy);
-        } else {
-          _init.proxys.push(initProxy);
-        }
-      },
-      addInitRoot: function (initRoot) {
-        _init.roots.push(initRoot);
-      },
-      addNodesData: function (setting, parentNode, index, nodes) {
-        var children = data.nodeChildren(setting, parentNode), params;
-        if (!children) {
-          children = data.nodeChildren(setting, parentNode, []);
-          index = -1;
-        } else if (index >= children.length) {
-          index = -1;
-        }
-
-        if (children.length > 0 && index === 0) {
-          children[0].isFirstNode = false;
-          view.setNodeLineIcos(setting, children[0]);
-        } else if (children.length > 0 && index < 0) {
-          children[children.length - 1].isLastNode = false;
-          view.setNodeLineIcos(setting, children[children.length - 1]);
-        }
-        data.nodeIsParent(setting, parentNode, true);
-
-        if (index < 0) {
-          data.nodeChildren(setting, parentNode, children.concat(nodes));
-        } else {
-          params = [index, 0].concat(nodes);
-          children.splice.apply(children, params);
-        }
-      },
-      addSelectedNode: function (setting, node) {
-        var root = data.getRoot(setting);
-        if (!data.isSelectedNode(setting, node)) {
-          root.curSelectedList.push(node);
-        }
-      },
-      addCreatedNode: function (setting, node) {
-        if (!!setting.callback.onNodeCreated || !!setting.view.addDiyDom) {
-          var root = data.getRoot(setting);
-          root.createdNodes.push(node);
-        }
-      },
-      addZTreeTools: function (zTreeTools) {
-        _init.zTreeTools.push(zTreeTools);
-      },
-      exSetting: function (s) {
-        $.extend(true, _setting, s);
-      },
-      fixPIdKeyValue: function (setting, node) {
-        if (setting.data.simpleData.enable) {
-          node[setting.data.simpleData.pIdKey] = node.parentTId ? node.getParentNode()[setting.data.simpleData.idKey] : setting.data.simpleData.rootPId;
-        }
-      },
-      getAfterA: function (setting, node, array) {
-        for (var i = 0, j = _init.afterA.length; i < j; i++) {
-          _init.afterA[i].apply(this, arguments);
-        }
-      },
-      getBeforeA: function (setting, node, array) {
-        for (var i = 0, j = _init.beforeA.length; i < j; i++) {
-          _init.beforeA[i].apply(this, arguments);
-        }
-      },
-      getInnerAfterA: function (setting, node, array) {
-        for (var i = 0, j = _init.innerAfterA.length; i < j; i++) {
-          _init.innerAfterA[i].apply(this, arguments);
-        }
-      },
-      getInnerBeforeA: function (setting, node, array) {
-        for (var i = 0, j = _init.innerBeforeA.length; i < j; i++) {
-          _init.innerBeforeA[i].apply(this, arguments);
-        }
-      },
-      getCache: function (setting) {
-        return caches[setting.treeId];
-      },
-      getNodeIndex: function (setting, node) {
-        if (!node) return null;
-        var p = node.parentTId ? node.getParentNode() : data.getRoot(setting),
-          children = data.nodeChildren(setting, p);
-        for (var i = 0, l = children.length - 1; i <= l; i++) {
-          if (children[i] === node) {
-            return i;
-          }
-        }
-        return -1;
-      },
-      getNextNode: function (setting, node) {
-        if (!node) return null;
-        var p = node.parentTId ? node.getParentNode() : data.getRoot(setting),
-          children = data.nodeChildren(setting, p);
-        for (var i = 0, l = children.length - 1; i <= l; i++) {
-          if (children[i] === node) {
-            return (i == l ? null : children[i + 1]);
-          }
-        }
-        return null;
-      },
-      getNodeByParam: function (setting, nodes, key, value) {
-        if (!nodes || !key) return null;
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          if (node[key] == value) {
-            return nodes[i];
-          }
-          var children = data.nodeChildren(setting, node);
-          var tmp = data.getNodeByParam(setting, children, key, value);
-          if (tmp) return tmp;
-        }
-        return null;
-      },
-      getNodeCache: function (setting, tId) {
-        if (!tId) return null;
-        var n = caches[setting.treeId].nodes[data.getNodeCacheId(tId)];
-        return n ? n : null;
-      },
-      getNodePath: function (setting, node) {
-        if (!node) return null;
-
-        var path;
-        if (node.parentTId) {
-          path = node.getParentNode().getPath();
-        } else {
-          path = [];
-        }
-
-        if (path) {
-          path.push(node);
-        }
-
-        return path;
-      },
-      getNodes: function (setting) {
-        return data.nodeChildren(setting, data.getRoot(setting));
-      },
-      getNodesByParam: function (setting, nodes, key, value) {
-        if (!nodes || !key) return [];
-        var result = [];
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          if (node[key] == value) {
-            result.push(node);
-          }
-          var children = data.nodeChildren(setting, node);
-          result = result.concat(data.getNodesByParam(setting, children, key, value));
-        }
-        return result;
-      },
-      getNodesByParamFuzzy: function (setting, nodes, key, value) {
-        if (!nodes || !key) return [];
-        var result = [];
-        value = value.toLowerCase();
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          if (typeof node[key] == "string" && nodes[i][key].toLowerCase().indexOf(value) > -1) {
-            result.push(node);
-          }
-          var children = data.nodeChildren(setting, node);
-          result = result.concat(data.getNodesByParamFuzzy(setting, children, key, value));
-        }
-        return result;
-      },
-      getNodesByFilter: function (setting, nodes, filter, isSingle, invokeParam) {
-        if (!nodes) return (isSingle ? null : []);
-        var result = isSingle ? null : [];
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          if (tools.apply(filter, [node, invokeParam], false)) {
-            if (isSingle) {
-              return node;
-            }
-            result.push(node);
-          }
-          var children = data.nodeChildren(setting, node);
-          var tmpResult = data.getNodesByFilter(setting, children, filter, isSingle, invokeParam);
-          if (isSingle && !!tmpResult) {
-            return tmpResult;
-          }
-          result = isSingle ? tmpResult : result.concat(tmpResult);
-        }
-        return result;
-      },
-      getPreNode: function (setting, node) {
-        if (!node) return null;
-        var p = node.parentTId ? node.getParentNode() : data.getRoot(setting),
-          children = data.nodeChildren(setting, p);
-        for (var i = 0, l = children.length; i < l; i++) {
-          if (children[i] === node) {
-            return (i == 0 ? null : children[i - 1]);
-          }
-        }
-        return null;
-      },
-      getRoot: function (setting) {
-        return setting ? roots[setting.treeId] : null;
-      },
-      getRoots: function () {
-        return roots;
-      },
-      getSetting: function (treeId) {
-        return settings[treeId];
-      },
-      getSettings: function () {
-        return settings;
-      },
-      getZTreeTools: function (treeId) {
-        var r = this.getRoot(this.getSetting(treeId));
-        return r ? r.treeTools : null;
-      },
-      initCache: function (setting) {
-        for (var i = 0, j = _init.caches.length; i < j; i++) {
-          _init.caches[i].apply(this, arguments);
-        }
-      },
-      initNode: function (setting, level, node, parentNode, preNode, nextNode) {
-        for (var i = 0, j = _init.nodes.length; i < j; i++) {
-          _init.nodes[i].apply(this, arguments);
-        }
-      },
-      initRoot: function (setting) {
-        for (var i = 0, j = _init.roots.length; i < j; i++) {
-          _init.roots[i].apply(this, arguments);
-        }
-      },
-      isSelectedNode: function (setting, node) {
-        var root = data.getRoot(setting);
-        for (var i = 0, j = root.curSelectedList.length; i < j; i++) {
-          if (node === root.curSelectedList[i]) return true;
-        }
-        return false;
-      },
-      nodeChildren: function (setting, node, newChildren) {
-        if (!node) {
-          return null;
-        }
-        var key = setting.data.key.children;
-        if (typeof newChildren !== 'undefined') {
-          node[key] = newChildren;
-        }
-        return node[key];
-      },
-      nodeIsParent: function (setting, node, newIsParent) {
-        if (!node) {
-          return false;
-        }
-        var key = setting.data.key.isParent;
-        if (typeof newIsParent !== 'undefined') {
-          if (typeof newIsParent === "string") {
-            newIsParent = tools.eqs(newIsParent, "true");
-          }
-          newIsParent = !!newIsParent;
-          node[key] = newIsParent;
-        } else if (typeof node[key] == "string"){
-          node[key] = tools.eqs(node[key], "true");
-        } else {
-          node[key] = !!node[key];
-        }
-        return node[key];
-      },
-      nodeName: function (setting, node, newName) {
-        var key = setting.data.key.name;
-        if (typeof newName !== 'undefined') {
-          node[key] = newName;
-        }
-        var rawName = "" + node[key];
-        if(typeof setting.data.render.name === 'function') {
-          return setting.data.render.name.call(this,rawName,node);
-        }
-        return rawName;
-      },
-      nodeTitle: function (setting, node) {
-        var t = setting.data.key.title === "" ? setting.data.key.name : setting.data.key.title;
-        var rawTitle = "" + node[t];
-        if(typeof setting.data.render.title === 'function') {
-          return setting.data.render.title.call(this,rawTitle,node);
-        }
-        return rawTitle;
-      },
-      removeNodeCache: function (setting, node) {
-        var children = data.nodeChildren(setting, node);
-        if (children) {
-          for (var i = 0, l = children.length; i < l; i++) {
-            data.removeNodeCache(setting, children[i]);
-          }
-        }
-        data.getCache(setting).nodes[data.getNodeCacheId(node.tId)] = null;
-      },
-      removeSelectedNode: function (setting, node) {
-        var root = data.getRoot(setting);
-        for (var i = 0, j = root.curSelectedList.length; i < j; i++) {
-          if (node === root.curSelectedList[i] || !data.getNodeCache(setting, root.curSelectedList[i].tId)) {
-            root.curSelectedList.splice(i, 1);
-            setting.treeObj.trigger(consts.event.UNSELECTED, [setting.treeId, node]);
-            i--;
-            j--;
-          }
-        }
-      },
-      setCache: function (setting, cache) {
-        caches[setting.treeId] = cache;
-      },
-      setRoot: function (setting, root) {
-        roots[setting.treeId] = root;
-      },
-      setZTreeTools: function (setting, zTreeTools) {
-        for (var i = 0, j = _init.zTreeTools.length; i < j; i++) {
-          _init.zTreeTools[i].apply(this, arguments);
-        }
-      },
-      transformToArrayFormat: function (setting, nodes) {
-        if (!nodes) return [];
-        var r = [];
-        if (tools.isArray(nodes)) {
-          for (var i = 0, l = nodes.length; i < l; i++) {
-            var node = nodes[i];
-            _do(node);
-          }
-        } else {
-          _do(nodes);
-        }
-        return r;
-
-        function _do(_node) {
-          r.push(_node);
-          var children = data.nodeChildren(setting, _node);
-          if (children) {
-            r = r.concat(data.transformToArrayFormat(setting, children));
-          }
-        }
-      },
-      transformTozTreeFormat: function (setting, sNodes) {
-        var i, l,
-          key = setting.data.simpleData.idKey,
-          parentKey = setting.data.simpleData.pIdKey;
-        if (!key || key == "" || !sNodes) return [];
-
-        if (tools.isArray(sNodes)) {
-          var r = [];
-          var tmpMap = {};
-          for (i = 0, l = sNodes.length; i < l; i++) {
-            tmpMap[sNodes[i][key]] = sNodes[i];
-          }
-          for (i = 0, l = sNodes.length; i < l; i++) {
-            var p = tmpMap[sNodes[i][parentKey]];
-            if (p && sNodes[i][key] != sNodes[i][parentKey]) {
-              var children = data.nodeChildren(setting, p);
-              if (!children) {
-                children = data.nodeChildren(setting, p, []);
-              }
-              children.push(sNodes[i]);
-            } else {
-              r.push(sNodes[i]);
-            }
-          }
-          return r;
-        } else {
-          return [sNodes];
-        }
-      }
-    },
-    //method of event proxy
-    event = {
-      bindEvent: function (setting) {
-        for (var i = 0, j = _init.bind.length; i < j; i++) {
-          _init.bind[i].apply(this, arguments);
-        }
-      },
-      unbindEvent: function (setting) {
-        for (var i = 0, j = _init.unbind.length; i < j; i++) {
-          _init.unbind[i].apply(this, arguments);
-        }
-      },
-      bindTree: function (setting) {
-        var eventParam = {
-            treeId: setting.treeId
-          },
-          o = setting.treeObj;
-        if (!setting.view.txtSelectedEnable) {
-          // for can't select text
-          o.bind('selectstart', handler.onSelectStart).css({
-            "-moz-user-select": "-moz-none"
-          });
-        }
-        o.bind('click', eventParam, event.proxy);
-        o.bind('dblclick', eventParam, event.proxy);
-        o.bind('mouseover', eventParam, event.proxy);
-        o.bind('mouseout', eventParam, event.proxy);
-        o.bind('mousedown', eventParam, event.proxy);
-        o.bind('mouseup', eventParam, event.proxy);
-        o.bind('contextmenu', eventParam, event.proxy);
-      },
-      unbindTree: function (setting) {
-        var o = setting.treeObj;
-        o.unbind('selectstart', handler.onSelectStart)
-          .unbind('click', event.proxy)
-          .unbind('dblclick', event.proxy)
-          .unbind('mouseover', event.proxy)
-          .unbind('mouseout', event.proxy)
-          .unbind('mousedown', event.proxy)
-          .unbind('mouseup', event.proxy)
-          .unbind('contextmenu', event.proxy);
-      },
-      doProxy: function (e) {
-        var results = [];
-        for (var i = 0, j = _init.proxys.length; i < j; i++) {
-          var proxyResult = _init.proxys[i].apply(this, arguments);
-          results.push(proxyResult);
-          if (proxyResult.stop) {
-            break;
-          }
-        }
-        return results;
-      },
-      proxy: function (e) {
-        var setting = data.getSetting(e.data.treeId);
-        if (!tools.uCanDo(setting, e)) return true;
-        var results = event.doProxy(e),
-          r = true, x = false;
-        for (var i = 0, l = results.length; i < l; i++) {
-          var proxyResult = results[i];
-          if (proxyResult.nodeEventCallback) {
-            x = true;
-            r = proxyResult.nodeEventCallback.apply(proxyResult, [e, proxyResult.node]) && r;
-          }
-          if (proxyResult.treeEventCallback) {
-            x = true;
-            r = proxyResult.treeEventCallback.apply(proxyResult, [e, proxyResult.node]) && r;
-          }
-        }
-        return r;
-      }
-    },
-    //method of event handler
-    handler = {
-      onSwitchNode: function (event, node) {
-        var setting = data.getSetting(event.data.treeId);
-        if (node.open) {
-          if (tools.apply(setting.callback.beforeCollapse, [setting.treeId, node], true) == false) return true;
-          data.getRoot(setting).expandTriggerFlag = true;
-          view.switchNode(setting, node);
-        } else {
-          if (tools.apply(setting.callback.beforeExpand, [setting.treeId, node], true) == false) return true;
-          data.getRoot(setting).expandTriggerFlag = true;
-          view.switchNode(setting, node);
-        }
-        return true;
-      },
-      onClickNode: function (event, node) {
-        var setting = data.getSetting(event.data.treeId),
-          clickFlag = ((setting.view.autoCancelSelected && (event.ctrlKey || event.metaKey)) && data.isSelectedNode(setting, node)) ? 0 : (setting.view.autoCancelSelected && (event.ctrlKey || event.metaKey) && setting.view.selectedMulti) ? 2 : 1;
-        if (tools.apply(setting.callback.beforeClick, [setting.treeId, node, clickFlag], true) == false) return true;
-        if (clickFlag === 0) {
-          view.cancelPreSelectedNode(setting, node);
-        } else {
-          view.selectNode(setting, node, clickFlag === 2);
-        }
-        setting.treeObj.trigger(consts.event.CLICK, [event, setting.treeId, node, clickFlag]);
-        return true;
-      },
-      onZTreeMousedown: function (event, node) {
-        var setting = data.getSetting(event.data.treeId);
-        if (tools.apply(setting.callback.beforeMouseDown, [setting.treeId, node], true)) {
-          tools.apply(setting.callback.onMouseDown, [event, setting.treeId, node]);
-        }
-        return true;
-      },
-      onZTreeMouseup: function (event, node) {
-        var setting = data.getSetting(event.data.treeId);
-        if (tools.apply(setting.callback.beforeMouseUp, [setting.treeId, node], true)) {
-          tools.apply(setting.callback.onMouseUp, [event, setting.treeId, node]);
-        }
-        return true;
-      },
-      onZTreeDblclick: function (event, node) {
-        var setting = data.getSetting(event.data.treeId);
-        if (tools.apply(setting.callback.beforeDblClick, [setting.treeId, node], true)) {
-          tools.apply(setting.callback.onDblClick, [event, setting.treeId, node]);
-        }
-        return true;
-      },
-      onZTreeContextmenu: function (event, node) {
-        var setting = data.getSetting(event.data.treeId);
-        if (tools.apply(setting.callback.beforeRightClick, [setting.treeId, node], true)) {
-          tools.apply(setting.callback.onRightClick, [event, setting.treeId, node]);
-        }
-        return (typeof setting.callback.onRightClick) != "function";
-      },
-      onSelectStart: function (e) {
-        var n = e.originalEvent.srcElement.nodeName.toLowerCase();
-        return (n === "input" || n === "textarea");
-      }
-    },
-    //method of tools for zTree
-    tools = {
-      apply: function (fun, param, defaultValue) {
-        if ((typeof fun) == "function") {
-          return fun.apply(zt, param ? param : []);
-        }
-        return defaultValue;
-      },
-      canAsync: function (setting, node) {
-        var children = data.nodeChildren(setting, node);
-        var isParent = data.nodeIsParent(setting, node);
-        return (setting.async.enable && node && isParent && !(node.zAsync || (children && children.length > 0)));
-      },
-      clone: function (obj) {
-        if (obj === null) return null;
-        var o = tools.isArray(obj) ? [] : {};
-        for (var i in obj) {
-          o[i] = (obj[i] instanceof Date) ? new Date(obj[i].getTime()) : (typeof obj[i] === "object" ? tools.clone(obj[i]) : obj[i]);
-        }
-        return o;
-      },
-      eqs: function (str1, str2) {
-        return str1.toLowerCase() === str2.toLowerCase();
-      },
-      isArray: function (arr) {
-        return Object.prototype.toString.apply(arr) === "[object Array]";
-      },
-      isElement: function (o) {
-        return (
-          typeof HTMLElement === "object" ? o instanceof HTMLElement : //DOM2
-            o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string"
-        );
-      },
-      $: function (node, exp, setting) {
-        if (!!exp && typeof exp != "string") {
-          setting = exp;
-          exp = "";
-        }
-        if (typeof node == "string") {
-          return $(node, setting ? setting.treeObj.get(0).ownerDocument : null);
-        } else {
-          return $("#" + node.tId + exp, setting ? setting.treeObj : null);
-        }
-      },
-      getMDom: function (setting, curDom, targetExpr) {
-        if (!curDom) return null;
-        while (curDom && curDom.id !== setting.treeId) {
-          for (var i = 0, l = targetExpr.length; curDom.tagName && i < l; i++) {
-            if (tools.eqs(curDom.tagName, targetExpr[i].tagName) && curDom.getAttribute(targetExpr[i].attrName) !== null) {
-              return curDom;
-            }
-          }
-          curDom = curDom.parentNode;
-        }
-        return null;
-      },
-      getNodeMainDom: function (target) {
-        return ($(target).parent("li").get(0) || $(target).parentsUntil("li").parent().get(0));
-      },
-      isChildOrSelf: function (dom, parentId) {
-        return ($(dom).closest("#" + parentId).length > 0);
-      },
-      uCanDo: function (setting, e) {
-        return true;
-      }
-    },
-    //method of operate ztree dom
-    view = {
-      addNodes: function (setting, parentNode, index, newNodes, isSilent) {
-        var isParent = data.nodeIsParent(setting, parentNode);
-        if (setting.data.keep.leaf && parentNode && !isParent) {
-          return;
-        }
-        if (!tools.isArray(newNodes)) {
-          newNodes = [newNodes];
-        }
-        if (setting.data.simpleData.enable) {
-          newNodes = data.transformTozTreeFormat(setting, newNodes);
-        }
-        if (parentNode) {
-          var target_switchObj = $$(parentNode, consts.id.SWITCH, setting),
-            target_icoObj = $$(parentNode, consts.id.ICON, setting),
-            target_ulObj = $$(parentNode, consts.id.UL, setting);
-
-          if (!parentNode.open) {
-            view.replaceSwitchClass(parentNode, target_switchObj, consts.folder.CLOSE);
-            view.replaceIcoClass(parentNode, target_icoObj, consts.folder.CLOSE);
-            parentNode.open = false;
-            target_ulObj.css({
-              "display": "none"
-            });
-          }
-
-          data.addNodesData(setting, parentNode, index, newNodes);
-          view.createNodes(setting, parentNode.level + 1, newNodes, parentNode, index);
-          if (!isSilent) {
-            view.expandCollapseParentNode(setting, parentNode, true);
-          }
-        } else {
-          data.addNodesData(setting, data.getRoot(setting), index, newNodes);
-          view.createNodes(setting, 0, newNodes, null, index);
-        }
-      },
-      appendNodes: function (setting, level, nodes, parentNode, index, initFlag, openFlag) {
-        if (!nodes) return [];
-        var html = [];
-
-        var tmpPNode = (parentNode) ? parentNode : data.getRoot(setting),
-          tmpPChild = data.nodeChildren(setting, tmpPNode),
-          isFirstNode, isLastNode;
-
-        if (!tmpPChild || index >= tmpPChild.length - nodes.length) {
-          index = -1;
-        }
-
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          if (initFlag) {
-            isFirstNode = ((index === 0 || tmpPChild.length == nodes.length) && (i == 0));
-            isLastNode = (index < 0 && i == (nodes.length - 1));
-            data.initNode(setting, level, node, parentNode, isFirstNode, isLastNode, openFlag);
-            data.addNodeCache(setting, node);
-          }
-          var isParent = data.nodeIsParent(setting, node);
-
-          var childHtml = [];
-          var children = data.nodeChildren(setting, node);
-          if (children && children.length > 0) {
-            //make child html first, because checkType
-            childHtml = view.appendNodes(setting, level + 1, children, node, -1, initFlag, openFlag && node.open);
-          }
-          if (openFlag) {
-            view.makeDOMNodeMainBefore(html, setting, node);
-            view.makeDOMNodeLine(html, setting, node);
-            data.getBeforeA(setting, node, html);
-            view.makeDOMNodeNameBefore(html, setting, node);
-            data.getInnerBeforeA(setting, node, html);
-            view.makeDOMNodeIcon(html, setting, node);
-            data.getInnerAfterA(setting, node, html);
-            view.makeDOMNodeNameAfter(html, setting, node);
-            data.getAfterA(setting, node, html);
-            if (isParent && node.open) {
-              view.makeUlHtml(setting, node, html, childHtml.join(''));
-            }
-            view.makeDOMNodeMainAfter(html, setting, node);
-            data.addCreatedNode(setting, node);
-          }
-        }
-        return html;
-      },
-      appendParentULDom: function (setting, node) {
-        var html = [],
-          nObj = $$(node, setting);
-        if (!nObj.get(0) && !!node.parentTId) {
-          view.appendParentULDom(setting, node.getParentNode());
-          nObj = $$(node, setting);
-        }
-        var ulObj = $$(node, consts.id.UL, setting);
-        if (ulObj.get(0)) {
-          ulObj.remove();
-        }
-        var children = data.nodeChildren(setting, node),
-          childHtml = view.appendNodes(setting, node.level + 1, children, node, -1, false, true);
-        view.makeUlHtml(setting, node, html, childHtml.join(''));
-        nObj.append(html.join(''));
-      },
-      asyncNode: function (setting, node, isSilent, callback) {
-        var i, l;
-        var isParent = data.nodeIsParent(setting, node);
-        if (node && !isParent) {
-          tools.apply(callback);
-          return false;
-        } else if (node && node.isAjaxing) {
-          return false;
-        } else if (tools.apply(setting.callback.beforeAsync, [setting.treeId, node], true) == false) {
-          tools.apply(callback);
-          return false;
-        }
-        if (node) {
-          node.isAjaxing = true;
-          var icoObj = $$(node, consts.id.ICON, setting);
-          icoObj.attr({"style": "", "class": consts.className.BUTTON + " " + consts.className.ICO_LOADING});
-        }
-
-        var tmpParam = {};
-        var autoParam = tools.apply(setting.async.autoParam, [setting.treeId, node], setting.async.autoParam);
-        for (i = 0, l = autoParam.length; node && i < l; i++) {
-          var pKey = autoParam[i].split("="), spKey = pKey;
-          if (pKey.length > 1) {
-            spKey = pKey[1];
-            pKey = pKey[0];
-          }
-          tmpParam[spKey] = node[pKey];
-        }
-        var otherParam = tools.apply(setting.async.otherParam, [setting.treeId, node], setting.async.otherParam);
-        if (tools.isArray(otherParam)) {
-          for (i = 0, l = otherParam.length; i < l; i += 2) {
-            tmpParam[otherParam[i]] = otherParam[i + 1];
-          }
-        } else {
-          for (var p in otherParam) {
-            tmpParam[p] = otherParam[p];
-          }
-        }
-
-        var _tmpV = data.getRoot(setting)._ver;
-        $.ajax({
-          contentType: setting.async.contentType,
-          cache: false,
-          type: setting.async.type,
-          url: tools.apply(setting.async.url, [setting.treeId, node], setting.async.url),
-          data: setting.async.contentType.indexOf('application/json') > -1 ? JSON.stringify(tmpParam) : tmpParam,
-          dataType: setting.async.dataType,
-          headers: setting.async.headers,
-          xhrFields: setting.async.xhrFields,
-          success: function (msg) {
-            if (_tmpV != data.getRoot(setting)._ver) {
-              return;
-            }
-            var newNodes = [];
-            try {
-              if (!msg || msg.length == 0) {
-                newNodes = [];
-              } else if (typeof msg == "string") {
-                newNodes = eval("(" + msg + ")");
-              } else {
-                newNodes = msg;
-              }
-            } catch (err) {
-              newNodes = msg;
-            }
-
-            if (node) {
-              node.isAjaxing = null;
-              node.zAsync = true;
-            }
-            view.setNodeLineIcos(setting, node);
-            if (newNodes && newNodes !== "") {
-              newNodes = tools.apply(setting.async.dataFilter, [setting.treeId, node, newNodes], newNodes);
-              view.addNodes(setting, node, -1, !!newNodes ? tools.clone(newNodes) : [], !!isSilent);
-            } else {
-              view.addNodes(setting, node, -1, [], !!isSilent);
-            }
-            setting.treeObj.trigger(consts.event.ASYNC_SUCCESS, [setting.treeId, node, msg]);
-            tools.apply(callback);
-          },
-          error: function (XMLHttpRequest, textStatus, errorThrown) {
-            if (_tmpV != data.getRoot(setting)._ver) {
-              return;
-            }
-            if (node) node.isAjaxing = null;
-            view.setNodeLineIcos(setting, node);
-            setting.treeObj.trigger(consts.event.ASYNC_ERROR, [setting.treeId, node, XMLHttpRequest, textStatus, errorThrown]);
-          }
-        });
-        return true;
-      },
-      cancelPreSelectedNode: function (setting, node, excludeNode) {
-        var list = data.getRoot(setting).curSelectedList,
-          i, n;
-        for (i = list.length - 1; i >= 0; i--) {
-          n = list[i];
-          if (node === n || (!node && (!excludeNode || excludeNode !== n))) {
-            $$(n, consts.id.A, setting).removeClass(consts.node.CURSELECTED);
-            if (node) {
-              data.removeSelectedNode(setting, node);
-              break;
-            } else {
-              list.splice(i, 1);
-              setting.treeObj.trigger(consts.event.UNSELECTED, [setting.treeId, n]);
-            }
-          }
-        }
-      },
-      createNodeCallback: function (setting) {
-        if (!!setting.callback.onNodeCreated || !!setting.view.addDiyDom) {
-          var root = data.getRoot(setting);
-          while (root.createdNodes.length > 0) {
-            var node = root.createdNodes.shift();
-            tools.apply(setting.view.addDiyDom, [setting.treeId, node]);
-            if (!!setting.callback.onNodeCreated) {
-              setting.treeObj.trigger(consts.event.NODECREATED, [setting.treeId, node]);
-            }
-          }
-        }
-      },
-      createNodes: function (setting, level, nodes, parentNode, index) {
-        if (!nodes || nodes.length == 0) return;
-        var root = data.getRoot(setting),
-          openFlag = !parentNode || parentNode.open || !!$$(data.nodeChildren(setting, parentNode)[0], setting).get(0);
-        root.createdNodes = [];
-        var zTreeHtml = view.appendNodes(setting, level, nodes, parentNode, index, true, openFlag),
-          parentObj, nextObj;
-
-        if (!parentNode) {
-          parentObj = setting.treeObj;
-          //setting.treeObj.append(zTreeHtml.join(''));
-        } else {
-          var ulObj = $$(parentNode, consts.id.UL, setting);
-          if (ulObj.get(0)) {
-            parentObj = ulObj;
-            //ulObj.append(zTreeHtml.join(''));
-          }
-        }
-        if (parentObj) {
-          if (index >= 0) {
-            nextObj = parentObj.children()[index];
-          }
-          if (index >= 0 && nextObj) {
-            $(nextObj).before(zTreeHtml.join(''));
-          } else {
-            parentObj.append(zTreeHtml.join(''));
-          }
-        }
-
-        view.createNodeCallback(setting);
-      },
-      destroy: function (setting) {
-        if (!setting) return;
-        data.initCache(setting);
-        data.initRoot(setting);
-        event.unbindTree(setting);
-        event.unbindEvent(setting);
-        setting.treeObj.empty();
-        delete settings[setting.treeId];
-      },
-      expandCollapseNode: function (setting, node, expandFlag, animateFlag, callback) {
-        var root = data.getRoot(setting);
-        var tmpCb, _callback;
-        if (!node) {
-          tools.apply(callback, []);
-          return;
-        }
-        var children = data.nodeChildren(setting, node);
-        var isParent = data.nodeIsParent(setting, node);
-        if (root.expandTriggerFlag) {
-          _callback = callback;
-          tmpCb = function () {
-            if (_callback) _callback();
-            if (node.open) {
-              setting.treeObj.trigger(consts.event.EXPAND, [setting.treeId, node]);
-            } else {
-              setting.treeObj.trigger(consts.event.COLLAPSE, [setting.treeId, node]);
-            }
-          };
-          callback = tmpCb;
-          root.expandTriggerFlag = false;
-        }
-        if (!node.open && isParent && ((!$$(node, consts.id.UL, setting).get(0)) || (children && children.length > 0 && !$$(children[0], setting).get(0)))) {
-          view.appendParentULDom(setting, node);
-          view.createNodeCallback(setting);
-        }
-        if (node.open == expandFlag) {
-          tools.apply(callback, []);
-          return;
-        }
-        var ulObj = $$(node, consts.id.UL, setting),
-          switchObj = $$(node, consts.id.SWITCH, setting),
-          icoObj = $$(node, consts.id.ICON, setting);
-
-        if (isParent) {
-          node.open = !node.open;
-          if (node.iconOpen && node.iconClose) {
-            icoObj.attr("style", view.makeNodeIcoStyle(setting, node));
-          }
-
-          if (node.open) {
-            view.replaceSwitchClass(node, switchObj, consts.folder.OPEN);
-            view.replaceIcoClass(node, icoObj, consts.folder.OPEN);
-            if (animateFlag == false || setting.view.expandSpeed == "") {
-              ulObj.show();
-              tools.apply(callback, []);
-            } else {
-              if (children && children.length > 0) {
-                ulObj.slideDown(setting.view.expandSpeed, callback);
-              } else {
-                ulObj.show();
-                tools.apply(callback, []);
-              }
-            }
-          } else {
-            view.replaceSwitchClass(node, switchObj, consts.folder.CLOSE);
-            view.replaceIcoClass(node, icoObj, consts.folder.CLOSE);
-            if (animateFlag == false || setting.view.expandSpeed == "" || !(children && children.length > 0)) {
-              ulObj.hide();
-              tools.apply(callback, []);
-            } else {
-              ulObj.slideUp(setting.view.expandSpeed, callback);
-            }
-          }
-        } else {
-          tools.apply(callback, []);
-        }
-      },
-      expandCollapseParentNode: function (setting, node, expandFlag, animateFlag, callback) {
-        if (!node) return;
-        if (!node.parentTId) {
-          view.expandCollapseNode(setting, node, expandFlag, animateFlag, callback);
-          return;
-        } else {
-          view.expandCollapseNode(setting, node, expandFlag, animateFlag);
-        }
-        if (node.parentTId) {
-          view.expandCollapseParentNode(setting, node.getParentNode(), expandFlag, animateFlag, callback);
-        }
-      },
-      expandCollapseSonNode: function (setting, node, expandFlag, animateFlag, callback) {
-        var root = data.getRoot(setting),
-          treeNodes = (node) ? data.nodeChildren(setting, node) : data.nodeChildren(setting, root),
-          selfAnimateSign = (node) ? false : animateFlag,
-          expandTriggerFlag = data.getRoot(setting).expandTriggerFlag;
-        data.getRoot(setting).expandTriggerFlag = false;
-        if (treeNodes) {
-          for (var i = 0, l = treeNodes.length; i < l; i++) {
-            if (treeNodes[i]) view.expandCollapseSonNode(setting, treeNodes[i], expandFlag, selfAnimateSign);
-          }
-        }
-        data.getRoot(setting).expandTriggerFlag = expandTriggerFlag;
-        view.expandCollapseNode(setting, node, expandFlag, animateFlag, callback);
-      },
-      isSelectedNode: function (setting, node) {
-        if (!node) {
-          return false;
-        }
-        var list = data.getRoot(setting).curSelectedList,
-          i;
-        for (i = list.length - 1; i >= 0; i--) {
-          if (node === list[i]) {
-            return true;
-          }
-        }
-        return false;
-      },
-      makeDOMNodeIcon: function (html, setting, node) {
-        var nameStr = data.nodeName(setting, node),
-          name = setting.view.nameIsHTML ? nameStr : nameStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        html.push("<span id='", node.tId, consts.id.ICON,
-          "' title='' treeNode", consts.id.ICON, " class='", view.makeNodeIcoClass(setting, node),
-          "' style='", view.makeNodeIcoStyle(setting, node), "'></span><span id='", node.tId, consts.id.SPAN,
-          "' class='", consts.className.NAME,
-          "'>", name, "</span>");
-      },
-      makeDOMNodeLine: function (html, setting, node) {
-        html.push("<span id='", node.tId, consts.id.SWITCH, "' title='' class='", view.makeNodeLineClass(setting, node), "' treeNode", consts.id.SWITCH, "></span>");
-      },
-      makeDOMNodeMainAfter: function (html, setting, node) {
-        html.push("</li>");
-      },
-      makeDOMNodeMainBefore: function (html, setting, node) {
-        html.push("<li id='", node.tId, "' class='", consts.className.LEVEL, node.level, "' tabindex='0' hidefocus='true' treenode>");
-      },
-      makeDOMNodeNameAfter: function (html, setting, node) {
-        html.push("</a>");
-      },
-      makeDOMNodeNameBefore: function (html, setting, node) {
-        var title = data.nodeTitle(setting, node),
-          url = view.makeNodeUrl(setting, node),
-          fontcss = view.makeNodeFontCss(setting, node),
-          nodeClasses = view.makeNodeClasses(setting, node),
-          fontStyle = [];
-        for (var f in fontcss) {
-          fontStyle.push(f, ":", fontcss[f], ";");
-        }
-        html.push("<a id='", node.tId, consts.id.A, "' class='", consts.className.LEVEL, node.level,
-          nodeClasses.add ? ' ' + nodeClasses.add.join(' ') : '',
-          "' treeNode", consts.id.A,
-          node.click ? " onclick=\"" + node.click + "\"" : "",
-          ((url != null && url.length > 0) ? " href='" + url + "'" : ""), " target='", view.makeNodeTarget(node), "' style='", fontStyle.join(''),
-          "'");
-        if (tools.apply(setting.view.showTitle, [setting.treeId, node], setting.view.showTitle) && title) {
-          html.push("title='", title.replace(/'/g, "&#39;").replace(/</g, '&lt;').replace(/>/g, '&gt;'), "'");
-        }
-        html.push(">");
-      },
-      makeNodeFontCss: function (setting, node) {
-        var fontCss = tools.apply(setting.view.fontCss, [setting.treeId, node], setting.view.fontCss);
-        return (fontCss && ((typeof fontCss) != "function")) ? fontCss : {};
-      },
-      makeNodeClasses: function (setting, node) {
-        var classes = tools.apply(setting.view.nodeClasses, [setting.treeId, node], setting.view.nodeClasses);
-        return (classes && (typeof classes !== "function")) ? classes : {add:[], remove:[]};
-      },
-      makeNodeIcoClass: function (setting, node) {
-        var icoCss = ["ico"];
-        if (!node.isAjaxing) {
-          var isParent = data.nodeIsParent(setting, node);
-          icoCss[0] = (node.iconSkin ? node.iconSkin + "_" : "") + icoCss[0];
-          if (isParent) {
-            icoCss.push(node.open ? consts.folder.OPEN : consts.folder.CLOSE);
-          } else {
-            icoCss.push(consts.folder.DOCU);
-          }
-        }
-        return consts.className.BUTTON + " " + icoCss.join('_');
-      },
-      makeNodeIcoStyle: function (setting, node) {
-        var icoStyle = [];
-        if (!node.isAjaxing) {
-          var isParent = data.nodeIsParent(setting, node);
-          var icon = (isParent && node.iconOpen && node.iconClose) ? (node.open ? node.iconOpen : node.iconClose) : node[setting.data.key.icon];
-          if (icon) icoStyle.push("background:url(", icon, ") 0 0 no-repeat;");
-          if (setting.view.showIcon == false || !tools.apply(setting.view.showIcon, [setting.treeId, node], true)) {
-            icoStyle.push("display:none;");
-          }
-        }
-        return icoStyle.join('');
-      },
-      makeNodeLineClass: function (setting, node) {
-        var lineClass = [];
-        if (setting.view.showLine) {
-          if (node.level == 0 && node.isFirstNode && node.isLastNode) {
-            lineClass.push(consts.line.ROOT);
-          } else if (node.level == 0 && node.isFirstNode) {
-            lineClass.push(consts.line.ROOTS);
-          } else if (node.isLastNode) {
-            lineClass.push(consts.line.BOTTOM);
-          } else {
-            lineClass.push(consts.line.CENTER);
-          }
-        } else {
-          lineClass.push(consts.line.NOLINE);
-        }
-        if (data.nodeIsParent(setting, node)) {
-          lineClass.push(node.open ? consts.folder.OPEN : consts.folder.CLOSE);
-        } else {
-          lineClass.push(consts.folder.DOCU);
-        }
-        return view.makeNodeLineClassEx(node) + lineClass.join('_');
-      },
-      makeNodeLineClassEx: function (node) {
-        return consts.className.BUTTON + " " + consts.className.LEVEL + node.level + " " + consts.className.SWITCH + " ";
-      },
-      makeNodeTarget: function (node) {
-        return (node.target || "_blank");
-      },
-      makeNodeUrl: function (setting, node) {
-        var urlKey = setting.data.key.url;
-        return node[urlKey] ? node[urlKey] : null;
-      },
-      makeUlHtml: function (setting, node, html, content) {
-        html.push("<ul id='", node.tId, consts.id.UL, "' class='", consts.className.LEVEL, node.level, " ", view.makeUlLineClass(setting, node), "' style='display:", (node.open ? "block" : "none"), "'>");
-        html.push(content);
-        html.push("</ul>");
-      },
-      makeUlLineClass: function (setting, node) {
-        return ((setting.view.showLine && !node.isLastNode) ? consts.line.LINE : "");
-      },
-      removeChildNodes: function (setting, node) {
-        if (!node) return;
-        var nodes = data.nodeChildren(setting, node);
-        if (!nodes) return;
-
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          data.removeNodeCache(setting, nodes[i]);
-        }
-        data.removeSelectedNode(setting);
-        delete node[setting.data.key.children];
-
-        if (!setting.data.keep.parent) {
-          data.nodeIsParent(setting, node, false);
-          node.open = false;
-          var tmp_switchObj = $$(node, consts.id.SWITCH, setting),
-            tmp_icoObj = $$(node, consts.id.ICON, setting);
-          view.replaceSwitchClass(node, tmp_switchObj, consts.folder.DOCU);
-          view.replaceIcoClass(node, tmp_icoObj, consts.folder.DOCU);
-          $$(node, consts.id.UL, setting).remove();
-        } else {
-          $$(node, consts.id.UL, setting).empty();
-        }
-      },
-      scrollIntoView: function (setting, dom) {
-        if (!dom) {
-          return;
-        }
-        // support IE 7 / 8
-        if (typeof Element === 'undefined' || typeof HTMLElement === 'undefined') {
-          var contRect = setting.treeObj.get(0).getBoundingClientRect(),
-            findMeRect = dom.getBoundingClientRect();
-          if (findMeRect.top < contRect.top || findMeRect.bottom > contRect.bottom
-            || findMeRect.right > contRect.right || findMeRect.left < contRect.left) {
-            dom.scrollIntoView();
-          }
-          return;
-        }
-        // CC-BY jocki84@googlemail.com, https://gist.github.com/jocki84/6ffafd003387179a988e
-        if (!Element.prototype.scrollIntoViewIfNeeded) {
-          Element.prototype.scrollIntoViewIfNeeded = function (centerIfNeeded) {
-            "use strict";
-
-            function makeRange(start, length) {
-              return {"start": start, "length": length, "end": start + length};
-            }
-
-            function coverRange(inner, outer) {
-              if (
-                false === centerIfNeeded ||
-                (outer.start < inner.end && inner.start < outer.end)
-              ) {
-                return Math.max(
-                  inner.end - outer.length,
-                  Math.min(outer.start, inner.start)
-                );
-              }
-              return (inner.start + inner.end - outer.length) / 2;
-            }
-
-            function makePoint(x, y) {
-              return {
-                "x": x,
-                "y": y,
-                "translate": function translate(dX, dY) {
-                  return makePoint(x + dX, y + dY);
-                }
-              };
-            }
-
-            function absolute(elem, pt) {
-              while (elem) {
-                pt = pt.translate(elem.offsetLeft, elem.offsetTop);
-                elem = elem.offsetParent;
-              }
-              return pt;
-            }
-
-            var target = absolute(this, makePoint(0, 0)),
-              extent = makePoint(this.offsetWidth, this.offsetHeight),
-              elem = this.parentNode,
-              origin;
-
-            while (elem instanceof HTMLElement) {
-              // Apply desired scroll amount.
-              origin = absolute(elem, makePoint(elem.clientLeft, elem.clientTop));
-              elem.scrollLeft = coverRange(
-                makeRange(target.x - origin.x, extent.x),
-                makeRange(elem.scrollLeft, elem.clientWidth)
-              );
-              elem.scrollTop = coverRange(
-                makeRange(target.y - origin.y, extent.y),
-                makeRange(elem.scrollTop, elem.clientHeight)
-              );
-
-              // Determine actual scroll amount by reading back scroll properties.
-              target = target.translate(-elem.scrollLeft, -elem.scrollTop);
-              elem = elem.parentNode;
-            }
-          };
-        }
-        dom.scrollIntoViewIfNeeded();
-      },
-      setFirstNode: function (setting, parentNode) {
-        var children = data.nodeChildren(setting, parentNode);
-        if (children.length > 0) {
-          children[0].isFirstNode = true;
-        }
-      },
-      setLastNode: function (setting, parentNode) {
-        var children = data.nodeChildren(setting, parentNode);
-        if (children.length > 0) {
-          children[children.length - 1].isLastNode = true;
-        }
-      },
-      removeNode: function (setting, node) {
-        var root = data.getRoot(setting),
-          parentNode = (node.parentTId) ? node.getParentNode() : root;
-
-        node.isFirstNode = false;
-        node.isLastNode = false;
-        node.getPreNode = function () {
-          return null;
-        };
-        node.getNextNode = function () {
-          return null;
-        };
-
-        if (!data.getNodeCache(setting, node.tId)) {
-          return;
-        }
-
-        $$(node, setting).remove();
-        data.removeNodeCache(setting, node);
-        data.removeSelectedNode(setting, node);
-
-        var children = data.nodeChildren(setting, parentNode);
-        for (var i = 0, l = children.length; i < l; i++) {
-          if (children[i].tId == node.tId) {
-            children.splice(i, 1);
-            break;
-          }
-        }
-        view.setFirstNode(setting, parentNode);
-        view.setLastNode(setting, parentNode);
-
-        var tmp_ulObj, tmp_switchObj, tmp_icoObj,
-          childLength = children.length;
-
-        //repair nodes old parent
-        if (!setting.data.keep.parent && childLength == 0) {
-          //old parentNode has no child nodes
-          data.nodeIsParent(setting, parentNode, false);
-          parentNode.open = false;
-          delete parentNode[setting.data.key.children];
-          tmp_ulObj = $$(parentNode, consts.id.UL, setting);
-          tmp_switchObj = $$(parentNode, consts.id.SWITCH, setting);
-          tmp_icoObj = $$(parentNode, consts.id.ICON, setting);
-          view.replaceSwitchClass(parentNode, tmp_switchObj, consts.folder.DOCU);
-          view.replaceIcoClass(parentNode, tmp_icoObj, consts.folder.DOCU);
-          tmp_ulObj.css("display", "none");
-
-        } else if (setting.view.showLine && childLength > 0) {
-          //old parentNode has child nodes
-          var newLast = children[childLength - 1];
-          tmp_ulObj = $$(newLast, consts.id.UL, setting);
-          tmp_switchObj = $$(newLast, consts.id.SWITCH, setting);
-          tmp_icoObj = $$(newLast, consts.id.ICON, setting);
-          if (parentNode == root) {
-            if (children.length == 1) {
-              //node was root, and ztree has only one root after move node
-              view.replaceSwitchClass(newLast, tmp_switchObj, consts.line.ROOT);
-            } else {
-              var tmp_first_switchObj = $$(children[0], consts.id.SWITCH, setting);
-              view.replaceSwitchClass(children[0], tmp_first_switchObj, consts.line.ROOTS);
-              view.replaceSwitchClass(newLast, tmp_switchObj, consts.line.BOTTOM);
-            }
-          } else {
-            view.replaceSwitchClass(newLast, tmp_switchObj, consts.line.BOTTOM);
-          }
-          tmp_ulObj.removeClass(consts.line.LINE);
-        }
-      },
-      replaceIcoClass: function (node, obj, newName) {
-        if (!obj || node.isAjaxing) return;
-        var tmpName = obj.attr("class");
-        if (tmpName == undefined) return;
-        var tmpList = tmpName.split("_");
-        switch (newName) {
-          case consts.folder.OPEN:
-          case consts.folder.CLOSE:
-          case consts.folder.DOCU:
-            tmpList[tmpList.length - 1] = newName;
-            break;
-        }
-        obj.attr("class", tmpList.join("_"));
-      },
-      replaceSwitchClass: function (node, obj, newName) {
-        if (!obj) return;
-        var tmpName = obj.attr("class");
-        if (tmpName == undefined) return;
-        var tmpList = tmpName.split("_");
-        switch (newName) {
-          case consts.line.ROOT:
-          case consts.line.ROOTS:
-          case consts.line.CENTER:
-          case consts.line.BOTTOM:
-          case consts.line.NOLINE:
-            tmpList[0] = view.makeNodeLineClassEx(node) + newName;
-            break;
-          case consts.folder.OPEN:
-          case consts.folder.CLOSE:
-          case consts.folder.DOCU:
-            tmpList[1] = newName;
-            break;
-        }
-        obj.attr("class", tmpList.join("_"));
-        if (newName !== consts.folder.DOCU) {
-          obj.removeAttr("disabled");
-        } else {
-          obj.attr("disabled", "disabled");
-        }
-      },
-      selectNode: function (setting, node, addFlag) {
-        if (!addFlag) {
-          view.cancelPreSelectedNode(setting, null, node);
-        }
-        $$(node, consts.id.A, setting).addClass(consts.node.CURSELECTED);
-        data.addSelectedNode(setting, node);
-        setting.treeObj.trigger(consts.event.SELECTED, [setting.treeId, node]);
-      },
-      setNodeFontCss: function (setting, treeNode) {
-        var aObj = $$(treeNode, consts.id.A, setting),
-          fontCss = view.makeNodeFontCss(setting, treeNode);
-        if (fontCss) {
-          aObj.css(fontCss);
-        }
-      },
-      setNodeClasses: function (setting, treeNode) {
-        var aObj = $$(treeNode, consts.id.A, setting),
-          classes = view.makeNodeClasses(setting, treeNode);
-        if ('add' in classes && classes.add.length) {
-          aObj.addClass(classes.add.join(' '));
-        }
-        if ('remove' in classes && classes.remove.length) {
-          aObj.removeClass(classes.remove.join(' '));
-        }
-      },
-      setNodeLineIcos: function (setting, node) {
-        if (!node) return;
-        var switchObj = $$(node, consts.id.SWITCH, setting),
-          ulObj = $$(node, consts.id.UL, setting),
-          icoObj = $$(node, consts.id.ICON, setting),
-          ulLine = view.makeUlLineClass(setting, node);
-        if (ulLine.length == 0) {
-          ulObj.removeClass(consts.line.LINE);
-        } else {
-          ulObj.addClass(ulLine);
-        }
-        switchObj.attr("class", view.makeNodeLineClass(setting, node));
-        if (data.nodeIsParent(setting, node)) {
-          switchObj.removeAttr("disabled");
-        } else {
-          switchObj.attr("disabled", "disabled");
-        }
-        icoObj.removeAttr("style");
-        icoObj.attr("style", view.makeNodeIcoStyle(setting, node));
-        icoObj.attr("class", view.makeNodeIcoClass(setting, node));
-      },
-      setNodeName: function (setting, node) {
-        var title = data.nodeTitle(setting, node),
-          nObj = $$(node, consts.id.SPAN, setting);
-        nObj.empty();
-        if (setting.view.nameIsHTML) {
-          nObj.html(data.nodeName(setting, node));
-        } else {
-          nObj.text(data.nodeName(setting, node));
-        }
-        if (tools.apply(setting.view.showTitle, [setting.treeId, node], setting.view.showTitle)) {
-          var aObj = $$(node, consts.id.A, setting);
-          aObj.attr("title", !title ? "" : title);
-        }
-      },
-      setNodeTarget: function (setting, node) {
-        var aObj = $$(node, consts.id.A, setting);
-        aObj.attr("target", view.makeNodeTarget(node));
-      },
-      setNodeUrl: function (setting, node) {
-        var aObj = $$(node, consts.id.A, setting),
-          url = view.makeNodeUrl(setting, node);
-        if (url == null || url.length == 0) {
-          aObj.removeAttr("href");
-        } else {
-          aObj.attr("href", url);
-        }
-      },
-      switchNode: function (setting, node) {
-        if (node.open || !tools.canAsync(setting, node)) {
-          view.expandCollapseNode(setting, node, !node.open);
-        } else if (setting.async.enable) {
-          if (!view.asyncNode(setting, node)) {
-            view.expandCollapseNode(setting, node, !node.open);
-            return;
-          }
-        } else if (node) {
-          view.expandCollapseNode(setting, node, !node.open);
-        }
-      }
-    };
-  // zTree defind
-  $.fn.zTree = {
-    consts: _consts,
-    _z: {
-      tools: tools,
-      view: view,
-      event: event,
-      data: data
-    },
-    getZTreeObj: function (treeId) {
-      var o = data.getZTreeTools(treeId);
-      return o ? o : null;
-    },
-    destroy: function (treeId) {
-      if (!!treeId && treeId.length > 0) {
-        view.destroy(data.getSetting(treeId));
-      } else {
-        for (var s in settings) {
-          view.destroy(settings[s]);
-        }
-      }
-    },
-    init: function (obj, zSetting, zNodes) {
-      var setting = tools.clone(_setting);
-      $.extend(true, setting, zSetting);
-      setting.treeId = obj.attr("id");
-      setting.treeObj = obj;
-      setting.treeObj.empty();
-      settings[setting.treeId] = setting;
-      //For some older browser,(e.g., ie6)
-      if (typeof document.body.style.maxHeight === "undefined") {
-        setting.view.expandSpeed = "";
-      }
-      data.initRoot(setting);
-      var root = data.getRoot(setting);
-      zNodes = zNodes ? tools.clone(tools.isArray(zNodes) ? zNodes : [zNodes]) : [];
-      if (setting.data.simpleData.enable) {
-        data.nodeChildren(setting, root, data.transformTozTreeFormat(setting, zNodes));
-      } else {
-        data.nodeChildren(setting, root, zNodes);
-      }
-
-      data.initCache(setting);
-      event.unbindTree(setting);
-      event.bindTree(setting);
-      event.unbindEvent(setting);
-      event.bindEvent(setting);
-
-      var zTreeTools = {
-        setting: setting,
-        addNodes: function (parentNode, index, newNodes, isSilent) {
-          if (!parentNode) parentNode = null;
-          var isParent = data.nodeIsParent(setting, parentNode);
-          if (parentNode && !isParent && setting.data.keep.leaf) return null;
-
-          var i = parseInt(index, 10);
-          if (isNaN(i)) {
-            isSilent = !!newNodes;
-            newNodes = index;
-            index = -1;
-          } else {
-            index = i;
-          }
-          if (!newNodes) return null;
-
-
-          var xNewNodes = tools.clone(tools.isArray(newNodes) ? newNodes : [newNodes]);
-
-          function addCallback() {
-            view.addNodes(setting, parentNode, index, xNewNodes, (isSilent == true));
-          }
-
-          if (tools.canAsync(setting, parentNode)) {
-            view.asyncNode(setting, parentNode, isSilent, addCallback);
-          } else {
-            addCallback();
-          }
-          return xNewNodes;
-        },
-        cancelSelectedNode: function (node) {
-          view.cancelPreSelectedNode(setting, node);
-        },
-        destroy: function () {
-          view.destroy(setting);
-        },
-        expandAll: function (expandFlag) {
-          expandFlag = !!expandFlag;
-          view.expandCollapseSonNode(setting, null, expandFlag, true);
-          return expandFlag;
-        },
-        expandNode: function (node, expandFlag, sonSign, focus, callbackFlag) {
-          if (!node || !data.nodeIsParent(setting, node)) return null;
-          if (expandFlag !== true && expandFlag !== false) {
-            expandFlag = !node.open;
-          }
-          callbackFlag = !!callbackFlag;
-
-          if (callbackFlag && expandFlag && (tools.apply(setting.callback.beforeExpand, [setting.treeId, node], true) == false)) {
-            return null;
-          } else if (callbackFlag && !expandFlag && (tools.apply(setting.callback.beforeCollapse, [setting.treeId, node], true) == false)) {
-            return null;
-          }
-          if (expandFlag && node.parentTId) {
-            view.expandCollapseParentNode(setting, node.getParentNode(), expandFlag, false);
-          }
-          if (expandFlag === node.open && !sonSign) {
-            return null;
-          }
-
-          data.getRoot(setting).expandTriggerFlag = callbackFlag;
-          if (!tools.canAsync(setting, node) && sonSign) {
-            view.expandCollapseSonNode(setting, node, expandFlag, true, showNodeFocus);
-          } else {
-            node.open = !expandFlag;
-            view.switchNode(this.setting, node);
-            showNodeFocus();
-          }
-          return expandFlag;
-
-          function showNodeFocus() {
-            var a = $$(node, setting).get(0);
-            if (a && focus !== false) {
-              view.scrollIntoView(setting, a);
-            }
-          }
-        },
-        getNodes: function () {
-          return data.getNodes(setting);
-        },
-        getNodeByParam: function (key, value, parentNode) {
-          if (!key) return null;
-          return data.getNodeByParam(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), key, value);
-        },
-        getNodeByTId: function (tId) {
-          return data.getNodeCache(setting, tId);
-        },
-        getNodesByParam: function (key, value, parentNode) {
-          if (!key) return null;
-          return data.getNodesByParam(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), key, value);
-        },
-        getNodesByParamFuzzy: function (key, value, parentNode) {
-          if (!key) return null;
-          return data.getNodesByParamFuzzy(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), key, value);
-        },
-        getNodesByFilter: function (filter, isSingle, parentNode, invokeParam) {
-          isSingle = !!isSingle;
-          if (!filter || (typeof filter != "function")) return (isSingle ? null : []);
-          return data.getNodesByFilter(setting, parentNode ? data.nodeChildren(setting, parentNode) : data.getNodes(setting), filter, isSingle, invokeParam);
-        },
-        getNodeIndex: function (node) {
-          if (!node) return null;
-          var parentNode = (node.parentTId) ? node.getParentNode() : data.getRoot(setting);
-          var children = data.nodeChildren(setting, parentNode);
-          for (var i = 0, l = children.length; i < l; i++) {
-            if (children[i] == node) return i;
-          }
-          return -1;
-        },
-        getSelectedNodes: function () {
-          var r = [], list = data.getRoot(setting).curSelectedList;
-          for (var i = 0, l = list.length; i < l; i++) {
-            r.push(list[i]);
-          }
-          return r;
-        },
-        isSelectedNode: function (node) {
-          return data.isSelectedNode(setting, node);
-        },
-        reAsyncChildNodesPromise: function (parentNode, reloadType, isSilent) {
-          var promise = new Promise(function (resolve, reject) {
-            try {
-              zTreeTools.reAsyncChildNodes(parentNode, reloadType, isSilent, function () {
-                resolve(parentNode);
-              });
-            } catch (e) {
-              reject(e);
-            }
-          });
-          return promise;
-        },
-        reAsyncChildNodes: function (parentNode, reloadType, isSilent, callback) {
-          if (!this.setting.async.enable) return;
-          var isRoot = !parentNode;
-          if (isRoot) {
-            parentNode = data.getRoot(setting);
-          }
-          if (reloadType == "refresh") {
-            var children = data.nodeChildren(setting, parentNode);
-            for (var i = 0, l = children ? children.length : 0; i < l; i++) {
-              data.removeNodeCache(setting, children[i]);
-            }
-            data.removeSelectedNode(setting);
-            data.nodeChildren(setting, parentNode, []);
-            if (isRoot) {
-              this.setting.treeObj.empty();
-            } else {
-              var ulObj = $$(parentNode, consts.id.UL, setting);
-              ulObj.empty();
-            }
-          }
-          view.asyncNode(this.setting, isRoot ? null : parentNode, !!isSilent, callback);
-        },
-        refresh: function () {
-          this.setting.treeObj.empty();
-          var root = data.getRoot(setting),
-            nodes = data.nodeChildren(setting, root);
-          data.initRoot(setting);
-          data.nodeChildren(setting, root, nodes);
-          data.initCache(setting);
-          view.createNodes(setting, 0, data.nodeChildren(setting, root), null, -1);
-        },
-        removeChildNodes: function (node) {
-          if (!node) return null;
-          var nodes = data.nodeChildren(setting, node);
-          view.removeChildNodes(setting, node);
-          return nodes ? nodes : null;
-        },
-        removeNode: function (node, callbackFlag) {
-          if (!node) return;
-          callbackFlag = !!callbackFlag;
-          if (callbackFlag && tools.apply(setting.callback.beforeRemove, [setting.treeId, node], true) == false) return;
-          view.removeNode(setting, node);
-          if (callbackFlag) {
-            this.setting.treeObj.trigger(consts.event.REMOVE, [setting.treeId, node]);
-          }
-        },
-        selectNode: function (node, addFlag, isSilent) {
-          if (!node) return;
-          if (tools.uCanDo(setting)) {
-            addFlag = setting.view.selectedMulti && addFlag;
-            if (node.parentTId) {
-              view.expandCollapseParentNode(setting, node.getParentNode(), true, false, showNodeFocus);
-            } else if (!isSilent) {
-              try {
-                $$(node, setting).focus().blur();
-              } catch (e) {
-              }
-            }
-            view.selectNode(setting, node, addFlag);
-          }
-
-          function showNodeFocus() {
-            if (isSilent) {
-              return;
-            }
-            var a = $$(node, setting).get(0);
-            view.scrollIntoView(setting, a);
-          }
-        },
-        transformTozTreeNodes: function (simpleNodes) {
-          return data.transformTozTreeFormat(setting, simpleNodes);
-        },
-        transformToArray: function (nodes) {
-          return data.transformToArrayFormat(setting, nodes);
-        },
-        updateNode: function (node, checkTypeFlag) {
-          if (!node) return;
-          var nObj = $$(node, setting);
-          if (nObj.get(0) && tools.uCanDo(setting)) {
-            view.setNodeName(setting, node);
-            view.setNodeTarget(setting, node);
-            view.setNodeUrl(setting, node);
-            view.setNodeLineIcos(setting, node);
-            view.setNodeFontCss(setting, node);
-            view.setNodeClasses(setting, node);
-          }
-        }
-      };
-      root.treeTools = zTreeTools;
-      data.setZTreeTools(setting, zTreeTools);
-      var children = data.nodeChildren(setting, root);
-      if (children && children.length > 0) {
-        view.createNodes(setting, 0, children, null, -1);
-      } else if (setting.async.enable && setting.async.url && setting.async.url !== '') {
-        view.asyncNode(setting);
-      }
-      return zTreeTools;
-    }
-  };
-
-  var zt = $.fn.zTree,
-    $$ = tools.$,
-    consts = zt.consts;
-})(jQuery);
-/*
- * JQuery zTree excheck
- * v3.5.46
- * http://treejs.cn/
- *
- * Copyright (c) 2010 Hunter.z
- *
- * Licensed same as jquery - MIT License
- * http://www.opensource.org/licenses/mit-license.php
- *
- * Date: 2020-11-21
- */
-
-(function ($) {
-  //default consts of excheck
-  var _consts = {
-      event: {
-        CHECK: "ztree_check"
-      },
-      id: {
-        CHECK: "_check"
-      },
-      checkbox: {
-        STYLE: "checkbox",
-        DEFAULT: "chk",
-        DISABLED: "disable",
-        FALSE: "false",
-        TRUE: "true",
-        FULL: "full",
-        PART: "part",
-        FOCUS: "focus"
-      },
-      radio: {
-        STYLE: "radio",
-        TYPE_ALL: "all",
-        TYPE_LEVEL: "level"
-      }
-    },
-    //default setting of excheck
-    _setting = {
-      check: {
-        enable: false,
-        autoCheckTrigger: false,
-        chkStyle: _consts.checkbox.STYLE,
-        nocheckInherit: false,
-        chkDisabledInherit: false,
-        radioType: _consts.radio.TYPE_LEVEL,
-        chkboxType: {
-          "Y": "ps",
-          "N": "ps"
-        }
-      },
-      data: {
-        key: {
-          checked: "checked"
-        }
-      },
-      callback: {
-        beforeCheck: null,
-        onCheck: null
-      }
-    },
-    //default root of excheck
-    _initRoot = function (setting) {
-      var r = data.getRoot(setting);
-      r.radioCheckedList = [];
-    },
-    //default cache of excheck
-    _initCache = function (treeId) {
-    },
-    //default bind event of excheck
-    _bindEvent = function (setting) {
-      var o = setting.treeObj,
-        c = consts.event;
-      o.bind(c.CHECK, function (event, srcEvent, treeId, node) {
-        event.srcEvent = srcEvent;
-        tools.apply(setting.callback.onCheck, [event, treeId, node]);
-      });
-    },
-    _unbindEvent = function (setting) {
-      var o = setting.treeObj,
-        c = consts.event;
-      o.unbind(c.CHECK);
-    },
-    //default event proxy of excheck
-    _eventProxy = function (e) {
-      var target = e.target,
-        setting = data.getSetting(e.data.treeId),
-        tId = "", node = null,
-        nodeEventType = "", treeEventType = "",
-        nodeEventCallback = null, treeEventCallback = null;
-
-      if (tools.eqs(e.type, "mouseover")) {
-        if (setting.check.enable && tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.CHECK) !== null) {
-          tId = tools.getNodeMainDom(target).id;
-          nodeEventType = "mouseoverCheck";
-        }
-      } else if (tools.eqs(e.type, "mouseout")) {
-        if (setting.check.enable && tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.CHECK) !== null) {
-          tId = tools.getNodeMainDom(target).id;
-          nodeEventType = "mouseoutCheck";
-        }
-      } else if (tools.eqs(e.type, "click")) {
-        if (setting.check.enable && tools.eqs(target.tagName, "span") && target.getAttribute("treeNode" + consts.id.CHECK) !== null) {
-          tId = tools.getNodeMainDom(target).id;
-          nodeEventType = "checkNode";
-        }
-      }
-      if (tId.length > 0) {
-        node = data.getNodeCache(setting, tId);
-        switch (nodeEventType) {
-          case "checkNode" :
-            nodeEventCallback = _handler.onCheckNode;
-            break;
-          case "mouseoverCheck" :
-            nodeEventCallback = _handler.onMouseoverCheck;
-            break;
-          case "mouseoutCheck" :
-            nodeEventCallback = _handler.onMouseoutCheck;
-            break;
-        }
-      }
-      var proxyResult = {
-        stop: nodeEventType === "checkNode",
-        node: node,
-        nodeEventType: nodeEventType,
-        nodeEventCallback: nodeEventCallback,
-        treeEventType: treeEventType,
-        treeEventCallback: treeEventCallback
-      };
-      return proxyResult
-    },
-    //default init node of excheck
-    _initNode = function (setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
-      if (!n) return;
-      var checked = data.nodeChecked(setting, n);
-      n.checkedOld = checked;
-      if (typeof n.nocheck == "string") n.nocheck = tools.eqs(n.nocheck, "true");
-      n.nocheck = !!n.nocheck || (setting.check.nocheckInherit && parentNode && !!parentNode.nocheck);
-      if (typeof n.chkDisabled == "string") n.chkDisabled = tools.eqs(n.chkDisabled, "true");
-      n.chkDisabled = !!n.chkDisabled || (setting.check.chkDisabledInherit && parentNode && !!parentNode.chkDisabled);
-      if (typeof n.halfCheck == "string") n.halfCheck = tools.eqs(n.halfCheck, "true");
-      n.halfCheck = !!n.halfCheck;
-      n.check_Child_State = -1;
-      n.check_Focus = false;
-      n.getCheckStatus = function () {
-        return data.getCheckStatus(setting, n);
-      };
-
-      if (setting.check.chkStyle == consts.radio.STYLE && setting.check.radioType == consts.radio.TYPE_ALL && checked) {
-        var r = data.getRoot(setting);
-        r.radioCheckedList.push(n);
-      }
-    },
-    //add dom for check
-    _beforeA = function (setting, node, html) {
-      if (setting.check.enable) {
-        data.makeChkFlag(setting, node);
-        html.push("<span ID='", node.tId, consts.id.CHECK, "' class='", view.makeChkClass(setting, node), "' treeNode", consts.id.CHECK, (node.nocheck === true ? " style='display:none;'" : ""), "></span>");
-      }
-    },
-    //update zTreeObj, add method of check
-    _zTreeTools = function (setting, zTreeTools) {
-      zTreeTools.checkNode = function (node, checked, checkTypeFlag, callbackFlag) {
-        var nodeChecked = data.nodeChecked(setting, node);
-        if (node.chkDisabled === true) return;
-        if (checked !== true && checked !== false) {
-          checked = !nodeChecked;
-        }
-        callbackFlag = !!callbackFlag;
-
-        if (nodeChecked === checked && !checkTypeFlag) {
-          return;
-        } else if (callbackFlag && tools.apply(this.setting.callback.beforeCheck, [this.setting.treeId, node], true) == false) {
-          return;
-        }
-        if (tools.uCanDo(this.setting) && this.setting.check.enable && node.nocheck !== true) {
-          data.nodeChecked(setting, node, checked);
-          var checkObj = $$(node, consts.id.CHECK, this.setting);
-          if (checkTypeFlag || this.setting.check.chkStyle === consts.radio.STYLE) view.checkNodeRelation(this.setting, node);
-          view.setChkClass(this.setting, checkObj, node);
-          view.repairParentChkClassWithSelf(this.setting, node);
-          if (callbackFlag) {
-            this.setting.treeObj.trigger(consts.event.CHECK, [null, this.setting.treeId, node]);
-          }
-        }
-      }
-
-      zTreeTools.checkAllNodes = function (checked) {
-        view.repairAllChk(this.setting, !!checked);
-      }
-
-      zTreeTools.getCheckedNodes = function (checked) {
-        checked = (checked !== false);
-        var children = data.nodeChildren(setting, data.getRoot(this.setting));
-        return data.getTreeCheckedNodes(this.setting, children, checked);
-      }
-
-      zTreeTools.getChangeCheckedNodes = function () {
-        var children = data.nodeChildren(setting, data.getRoot(this.setting));
-        return data.getTreeChangeCheckedNodes(this.setting, children);
-      }
-
-      zTreeTools.setChkDisabled = function (node, disabled, inheritParent, inheritChildren) {
-        disabled = !!disabled;
-        inheritParent = !!inheritParent;
-        inheritChildren = !!inheritChildren;
-        view.repairSonChkDisabled(this.setting, node, disabled, inheritChildren);
-        view.repairParentChkDisabled(this.setting, node.getParentNode(), disabled, inheritParent);
-      }
-
-      var _updateNode = zTreeTools.updateNode;
-      zTreeTools.updateNode = function (node, checkTypeFlag) {
-        if (_updateNode) _updateNode.apply(zTreeTools, arguments);
-        if (!node || !this.setting.check.enable) return;
-        var nObj = $$(node, this.setting);
-        if (nObj.get(0) && tools.uCanDo(this.setting)) {
-          var checkObj = $$(node, consts.id.CHECK, this.setting);
-          if (checkTypeFlag == true || this.setting.check.chkStyle === consts.radio.STYLE) view.checkNodeRelation(this.setting, node);
-          view.setChkClass(this.setting, checkObj, node);
-          view.repairParentChkClassWithSelf(this.setting, node);
-        }
-      }
-    },
-    //method of operate data
-    _data = {
-      getRadioCheckedList: function (setting) {
-        var checkedList = data.getRoot(setting).radioCheckedList;
-        for (var i = 0, j = checkedList.length; i < j; i++) {
-          if (!data.getNodeCache(setting, checkedList[i].tId)) {
-            checkedList.splice(i, 1);
-            i--;
-            j--;
-          }
-        }
-        return checkedList;
-      },
-      getCheckStatus: function (setting, node) {
-        if (!setting.check.enable || node.nocheck || node.chkDisabled) return null;
-        var checked = data.nodeChecked(setting, node),
-          r = {
-            checked: checked,
-            half: node.halfCheck ? node.halfCheck : (setting.check.chkStyle == consts.radio.STYLE ? (node.check_Child_State === 2) : (checked ? (node.check_Child_State > -1 && node.check_Child_State < 2) : (node.check_Child_State > 0)))
-          };
-        return r;
-      },
-      getTreeCheckedNodes: function (setting, nodes, checked, results) {
-        if (!nodes) return [];
-        var onlyOne = (checked && setting.check.chkStyle == consts.radio.STYLE && setting.check.radioType == consts.radio.TYPE_ALL);
-        results = !results ? [] : results;
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          var children = data.nodeChildren(setting, node);
-          var nodeChecked = data.nodeChecked(setting, node);
-          if (node.nocheck !== true && node.chkDisabled !== true && nodeChecked == checked) {
-            results.push(node);
-            if (onlyOne) {
-              break;
-            }
-          }
-          data.getTreeCheckedNodes(setting, children, checked, results);
-          if (onlyOne && results.length > 0) {
-            break;
-          }
-        }
-        return results;
-      },
-      getTreeChangeCheckedNodes: function (setting, nodes, results) {
-        if (!nodes) return [];
-        results = !results ? [] : results;
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          var node = nodes[i];
-          var children = data.nodeChildren(setting, node);
-          var nodeChecked = data.nodeChecked(setting, node);
-          if (node.nocheck !== true && node.chkDisabled !== true && nodeChecked != node.checkedOld) {
-            results.push(node);
-          }
-          data.getTreeChangeCheckedNodes(setting, children, results);
-        }
-        return results;
-      },
-      makeChkFlag: function (setting, node) {
-        if (!node) return;
-        var chkFlag = -1;
-        var children = data.nodeChildren(setting, node);
-        if (children) {
-          for (var i = 0, l = children.length; i < l; i++) {
-            var cNode = children[i];
-            var nodeChecked = data.nodeChecked(setting, cNode);
-            var tmp = -1;
-            if (setting.check.chkStyle == consts.radio.STYLE) {
-              if (cNode.nocheck === true || cNode.chkDisabled === true) {
-                tmp = cNode.check_Child_State;
-              } else if (cNode.halfCheck === true) {
-                tmp = 2;
-              } else if (nodeChecked) {
-                tmp = 2;
-              } else {
-                tmp = cNode.check_Child_State > 0 ? 2 : 0;
-              }
-              if (tmp == 2) {
-                chkFlag = 2;
-                break;
-              } else if (tmp == 0) {
-                chkFlag = 0;
-              }
-            } else if (setting.check.chkStyle == consts.checkbox.STYLE) {
-              if (cNode.nocheck === true || cNode.chkDisabled === true) {
-                tmp = cNode.check_Child_State;
-              } else if (cNode.halfCheck === true) {
-                tmp = 1;
-              } else if (nodeChecked) {
-                tmp = (cNode.check_Child_State === -1 || cNode.check_Child_State === 2) ? 2 : 1;
-              } else {
-                tmp = (cNode.check_Child_State > 0) ? 1 : 0;
-              }
-              if (tmp === 1) {
-                chkFlag = 1;
-                break;
-              } else if (tmp === 2 && chkFlag > -1 && i > 0 && tmp !== chkFlag) {
-                chkFlag = 1;
-                break;
-              } else if (chkFlag === 2 && tmp > -1 && tmp < 2) {
-                chkFlag = 1;
-                break;
-              } else if (tmp > -1) {
-                chkFlag = tmp;
-              }
-            }
-          }
-        }
-        node.check_Child_State = chkFlag;
-      }
-    },
-    //method of event proxy
-    _event = {},
-    //method of event handler
-    _handler = {
-      onCheckNode: function (event, node) {
-        if (node.chkDisabled === true) return false;
-        var setting = data.getSetting(event.data.treeId);
-        if (tools.apply(setting.callback.beforeCheck, [setting.treeId, node], true) == false) return true;
-        var nodeChecked = data.nodeChecked(setting, node);
-        data.nodeChecked(setting, node, !nodeChecked);
-        view.checkNodeRelation(setting, node);
-        var checkObj = $$(node, consts.id.CHECK, setting);
-        view.setChkClass(setting, checkObj, node);
-        view.repairParentChkClassWithSelf(setting, node);
-        setting.treeObj.trigger(consts.event.CHECK, [event, setting.treeId, node]);
-        return true;
-      },
-      onMouseoverCheck: function (event, node) {
-        if (node.chkDisabled === true) return false;
-        var setting = data.getSetting(event.data.treeId),
-          checkObj = $$(node, consts.id.CHECK, setting);
-        node.check_Focus = true;
-        view.setChkClass(setting, checkObj, node);
-        return true;
-      },
-      onMouseoutCheck: function (event, node) {
-        if (node.chkDisabled === true) return false;
-        var setting = data.getSetting(event.data.treeId),
-          checkObj = $$(node, consts.id.CHECK, setting);
-        node.check_Focus = false;
-        view.setChkClass(setting, checkObj, node);
-        return true;
-      }
-    },
-    //method of tools for zTree
-    _tools = {},
-    //method of operate ztree dom
-    _view = {
-      checkNodeRelation: function (setting, node) {
-        var pNode, i, l,
-          r = consts.radio;
-        var nodeChecked = data.nodeChecked(setting, node);
-        if (setting.check.chkStyle == r.STYLE) {
-          var checkedList = data.getRadioCheckedList(setting);
-          if (nodeChecked) {
-            if (setting.check.radioType == r.TYPE_ALL) {
-              for (i = checkedList.length - 1; i >= 0; i--) {
-                pNode = checkedList[i];
-                var pNodeChecked = data.nodeChecked(setting, pNode);
-                if (pNodeChecked && pNode != node) {
-                  data.nodeChecked(setting, pNode, false);
-                  checkedList.splice(i, 1);
-
-                  view.setChkClass(setting, $$(pNode, consts.id.CHECK, setting), pNode);
-                  if (pNode.parentTId != node.parentTId) {
-                    view.repairParentChkClassWithSelf(setting, pNode);
-                  }
-                }
-              }
-              checkedList.push(node);
-            } else {
-              var parentNode = (node.parentTId) ? node.getParentNode() : data.getRoot(setting);
-              var children = data.nodeChildren(setting, parentNode);
-              for (i = 0, l = children.length; i < l; i++) {
-                pNode = children[i];
-                var pNodeChecked = data.nodeChecked(setting, pNode);
-                if (pNodeChecked && pNode != node) {
-                  data.nodeChecked(setting, pNode, false);
-                  view.setChkClass(setting, $$(pNode, consts.id.CHECK, setting), pNode);
-                }
-              }
-            }
-          } else if (setting.check.radioType == r.TYPE_ALL) {
-            for (i = 0, l = checkedList.length; i < l; i++) {
-              if (node == checkedList[i]) {
-                checkedList.splice(i, 1);
-                break;
-              }
-            }
-          }
-
-        } else {
-          var children = data.nodeChildren(setting, node);
-          if (nodeChecked && (!children || children.length == 0 || setting.check.chkboxType.Y.indexOf("s") > -1)) {
-            view.setSonNodeCheckBox(setting, node, true);
-          }
-          if (!nodeChecked && (!children || children.length == 0 || setting.check.chkboxType.N.indexOf("s") > -1)) {
-            view.setSonNodeCheckBox(setting, node, false);
-          }
-          if (nodeChecked && setting.check.chkboxType.Y.indexOf("p") > -1) {
-            view.setParentNodeCheckBox(setting, node, true);
-          }
-          if (!nodeChecked && setting.check.chkboxType.N.indexOf("p") > -1) {
-            view.setParentNodeCheckBox(setting, node, false);
-          }
-        }
-      },
-      makeChkClass: function (setting, node) {
-        var c = consts.checkbox, r = consts.radio,
-          fullStyle = "";
-        var nodeChecked = data.nodeChecked(setting, node);
-        if (node.chkDisabled === true) {
-          fullStyle = c.DISABLED;
-        } else if (node.halfCheck) {
-          fullStyle = c.PART;
-        } else if (setting.check.chkStyle == r.STYLE) {
-          fullStyle = (node.check_Child_State < 1) ? c.FULL : c.PART;
-        } else {
-          fullStyle = nodeChecked ? ((node.check_Child_State === 2 || node.check_Child_State === -1) ? c.FULL : c.PART) : ((node.check_Child_State < 1) ? c.FULL : c.PART);
-        }
-        var chkName = setting.check.chkStyle + "_" + (nodeChecked ? c.TRUE : c.FALSE) + "_" + fullStyle;
-        chkName = (node.check_Focus && node.chkDisabled !== true) ? chkName + "_" + c.FOCUS : chkName;
-        return consts.className.BUTTON + " " + c.DEFAULT + " " + chkName;
-      },
-      repairAllChk: function (setting, checked) {
-        if (setting.check.enable && setting.check.chkStyle === consts.checkbox.STYLE) {
-          var root = data.getRoot(setting);
-          var children = data.nodeChildren(setting, root);
-          for (var i = 0, l = children.length; i < l; i++) {
-            var node = children[i];
-            if (node.nocheck !== true && node.chkDisabled !== true) {
-              data.nodeChecked(setting, node, checked);
-            }
-            view.setSonNodeCheckBox(setting, node, checked);
-          }
-        }
-      },
-      repairChkClass: function (setting, node) {
-        if (!node) return;
-        data.makeChkFlag(setting, node);
-        if (node.nocheck !== true) {
-          var checkObj = $$(node, consts.id.CHECK, setting);
-          view.setChkClass(setting, checkObj, node);
-        }
-      },
-      repairParentChkClass: function (setting, node) {
-        if (!node || !node.parentTId) return;
-        var pNode = node.getParentNode();
-        view.repairChkClass(setting, pNode);
-        view.repairParentChkClass(setting, pNode);
-      },
-      repairParentChkClassWithSelf: function (setting, node) {
-        if (!node) return;
-        var children = data.nodeChildren(setting, node);
-        if (children && children.length > 0) {
-          view.repairParentChkClass(setting, children[0]);
-        } else {
-          view.repairParentChkClass(setting, node);
-        }
-      },
-      repairSonChkDisabled: function (setting, node, chkDisabled, inherit) {
-        if (!node) return;
-        if (node.chkDisabled != chkDisabled) {
-          node.chkDisabled = chkDisabled;
-        }
-        view.repairChkClass(setting, node);
-        var children = data.nodeChildren(setting, node);
-        if (children && inherit) {
-          for (var i = 0, l = children.length; i < l; i++) {
-            var sNode = children[i];
-            view.repairSonChkDisabled(setting, sNode, chkDisabled, inherit);
-          }
-        }
-      },
-      repairParentChkDisabled: function (setting, node, chkDisabled, inherit) {
-        if (!node) return;
-        if (node.chkDisabled != chkDisabled && inherit) {
-          node.chkDisabled = chkDisabled;
-        }
-        view.repairChkClass(setting, node);
-        view.repairParentChkDisabled(setting, node.getParentNode(), chkDisabled, inherit);
-      },
-      setChkClass: function (setting, obj, node) {
-        if (!obj) return;
-        if (node.nocheck === true) {
-          obj.hide();
-        } else {
-          obj.show();
-        }
-        obj.attr('class', view.makeChkClass(setting, node));
-      },
-      setParentNodeCheckBox: function (setting, node, value, srcNode) {
-        var checkObj = $$(node, consts.id.CHECK, setting);
-        if (!srcNode) srcNode = node;
-        data.makeChkFlag(setting, node);
-        if (node.nocheck !== true && node.chkDisabled !== true) {
-          data.nodeChecked(setting, node, value);
-          view.setChkClass(setting, checkObj, node);
-          if (setting.check.autoCheckTrigger && node != srcNode) {
-            setting.treeObj.trigger(consts.event.CHECK, [null, setting.treeId, node]);
-          }
-        }
-        if (node.parentTId) {
-          var pSign = true;
-          if (!value) {
-            var pNodes = data.nodeChildren(setting, node.getParentNode());
-            for (var i = 0, l = pNodes.length; i < l; i++) {
-              var pNode = pNodes[i];
-              var nodeChecked = data.nodeChecked(setting, pNode);
-              if ((pNode.nocheck !== true && pNode.chkDisabled !== true && nodeChecked)
-                || ((pNode.nocheck === true || pNode.chkDisabled === true) && pNode.check_Child_State > 0)) {
-                pSign = false;
-                break;
-              }
-            }
-          }
-          if (pSign) {
-            view.setParentNodeCheckBox(setting, node.getParentNode(), value, srcNode);
-          }
-        }
-      },
-      setSonNodeCheckBox: function (setting, node, value, srcNode) {
-        if (!node) return;
-        var checkObj = $$(node, consts.id.CHECK, setting);
-        if (!srcNode) srcNode = node;
-
-        var hasDisable = false;
-        var children = data.nodeChildren(setting, node);
-        if (children) {
-          for (var i = 0, l = children.length; i < l; i++) {
-            var sNode = children[i];
-            view.setSonNodeCheckBox(setting, sNode, value, srcNode);
-            if (sNode.chkDisabled === true) hasDisable = true;
-          }
-        }
-
-        if (node != data.getRoot(setting) && node.chkDisabled !== true) {
-          if (hasDisable && node.nocheck !== true) {
-            data.makeChkFlag(setting, node);
-          }
-          if (node.nocheck !== true && node.chkDisabled !== true) {
-            data.nodeChecked(setting, node, value);
-            if (!hasDisable) node.check_Child_State = (children && children.length > 0) ? (value ? 2 : 0) : -1;
-          } else {
-            node.check_Child_State = -1;
-          }
-          view.setChkClass(setting, checkObj, node);
-          if (setting.check.autoCheckTrigger && node != srcNode && node.nocheck !== true && node.chkDisabled !== true) {
-            setting.treeObj.trigger(consts.event.CHECK, [null, setting.treeId, node]);
-          }
-        }
-
-      }
-    },
-
-    _z = {
-      tools: _tools,
-      view: _view,
-      event: _event,
-      data: _data
-    };
-  $.extend(true, $.fn.zTree.consts, _consts);
-  $.extend(true, $.fn.zTree._z, _z);
-
-  var zt = $.fn.zTree,
-    tools = zt._z.tools,
-    consts = zt.consts,
-    view = zt._z.view,
-    data = zt._z.data,
-    event = zt._z.event,
-    $$ = tools.$;
-
-  data.nodeChecked = function (setting, node, newChecked) {
-    if (!node) {
-      return false;
-    }
-    var key = setting.data.key.checked;
-    if (typeof newChecked !== 'undefined') {
-      if (typeof newChecked === "string") {
-        newChecked = tools.eqs(newChecked, "true");
-      }
-      newChecked = !!newChecked;
-      node[key] = newChecked;
-    } else if (typeof node[key] == "string"){
-      node[key] = tools.eqs(node[key], "true");
-    } else {
-      node[key] = !!node[key];
-    }
-    return node[key];
-  };
-
-  data.exSetting(_setting);
-  data.addInitBind(_bindEvent);
-  data.addInitUnBind(_unbindEvent);
-  data.addInitCache(_initCache);
-  data.addInitNode(_initNode);
-  data.addInitProxy(_eventProxy, true);
-  data.addInitRoot(_initRoot);
-  data.addBeforeA(_beforeA);
-  data.addZTreeTools(_zTreeTools);
-
-  var _createNodes = view.createNodes;
-  view.createNodes = function (setting, level, nodes, parentNode, index) {
-    if (_createNodes) _createNodes.apply(view, arguments);
-    if (!nodes) return;
-    view.repairParentChkClassWithSelf(setting, parentNode);
-  }
-  var _removeNode = view.removeNode;
-  view.removeNode = function (setting, node) {
-    var parentNode = node.getParentNode();
-    if (_removeNode) _removeNode.apply(view, arguments);
-    if (!node || !parentNode) return;
-    view.repairChkClass(setting, parentNode);
-    view.repairParentChkClass(setting, parentNode);
-  }
-
-  var _appendNodes = view.appendNodes;
-  view.appendNodes = function (setting, level, nodes, parentNode, index, initFlag, openFlag) {
-    var html = "";
-    if (_appendNodes) {
-      html = _appendNodes.apply(view, arguments);
-    }
-    if (parentNode) {
-      data.makeChkFlag(setting, parentNode);
-    }
-    return html;
-  }
-})(jQuery);
-/*
- * JQuery zTree exedit
- * v3.5.46
- * http://treejs.cn/
- *
- * Copyright (c) 2010 Hunter.z
- *
- * Licensed same as jquery - MIT License
- * http://www.opensource.org/licenses/mit-license.php
- *
- * Date: 2020-11-21
- */
-
-(function ($) {
-  //default consts of exedit
-  var _consts = {
-      event: {
-        DRAG: "ztree_drag",
-        DROP: "ztree_drop",
-        RENAME: "ztree_rename",
-        DRAGMOVE: "ztree_dragmove"
-      },
-      id: {
-        EDIT: "_edit",
-        INPUT: "_input",
-        REMOVE: "_remove"
-      },
-      move: {
-        TYPE_INNER: "inner",
-        TYPE_PREV: "prev",
-        TYPE_NEXT: "next"
-      },
-      node: {
-        CURSELECTED_EDIT: "curSelectedNode_Edit",
-        TMPTARGET_TREE: "tmpTargetzTree",
-        TMPTARGET_NODE: "tmpTargetNode"
-      }
-    },
-    //default setting of exedit
-    _setting = {
-      edit: {
-        enable: false,
-        editNameSelectAll: false,
-        showRemoveBtn: true,
-        showRenameBtn: true,
-        removeTitle: "remove",
-        renameTitle: "rename",
-        drag: {
-          autoExpandTrigger: false,
-          isCopy: true,
-          isMove: true,
-          prev: true,
-          next: true,
-          inner: true,
-          minMoveSize: 5,
-          borderMax: 10,
-          borderMin: -5,
-          maxShowNodeNum: 5,
-          autoOpenTime: 500
-        }
-      },
-      view: {
-        addHoverDom: null,
-        removeHoverDom: null
-      },
-      callback: {
-        beforeDrag: null,
-        beforeDragOpen: null,
-        beforeDrop: null,
-        beforeEditName: null,
-        beforeRename: null,
-        onDrag: null,
-        onDragMove: null,
-        onDrop: null,
-        onRename: null
-      }
-    },
-    //default root of exedit
-    _initRoot = function (setting) {
-      var r = data.getRoot(setting), rs = data.getRoots();
-      r.curEditNode = null;
-      r.curEditInput = null;
-      r.curHoverNode = null;
-      r.dragFlag = 0;
-      r.dragNodeShowBefore = [];
-      r.dragMaskList = new Array();
-      rs.showHoverDom = true;
-    },
-    //default cache of exedit
-    _initCache = function (treeId) {
-    },
-    //default bind event of exedit
-    _bindEvent = function (setting) {
-      var o = setting.treeObj;
-      var c = consts.event;
-      o.bind(c.RENAME, function (event, treeId, treeNode, isCancel) {
-        tools.apply(setting.callback.onRename, [event, treeId, treeNode, isCancel]);
-      });
-
-      o.bind(c.DRAG, function (event, srcEvent, treeId, treeNodes) {
-        tools.apply(setting.callback.onDrag, [srcEvent, treeId, treeNodes]);
-      });
-
-      o.bind(c.DRAGMOVE, function (event, srcEvent, treeId, treeNodes) {
-        tools.apply(setting.callback.onDragMove, [srcEvent, treeId, treeNodes]);
-      });
-
-      o.bind(c.DROP, function (event, srcEvent, treeId, treeNodes, targetNode, moveType, isCopy) {
-        tools.apply(setting.callback.onDrop, [srcEvent, treeId, treeNodes, targetNode, moveType, isCopy]);
-      });
-    },
-    _unbindEvent = function (setting) {
-      var o = setting.treeObj;
-      var c = consts.event;
-      o.unbind(c.RENAME);
-      o.unbind(c.DRAG);
-      o.unbind(c.DRAGMOVE);
-      o.unbind(c.DROP);
-    },
-    //default event proxy of exedit
-    _eventProxy = function (e) {
-      var target = e.target,
-        setting = data.getSetting(e.data.treeId),
-        relatedTarget = e.relatedTarget,
-        tId = "", node = null,
-        nodeEventType = "", treeEventType = "",
-        nodeEventCallback = null, treeEventCallback = null,
-        tmp = null;
-
-      if (tools.eqs(e.type, "mouseover")) {
-        tmp = tools.getMDom(setting, target, [{tagName: "a", attrName: "treeNode" + consts.id.A}]);
-        if (tmp) {
-          tId = tools.getNodeMainDom(tmp).id;
-          nodeEventType = "hoverOverNode";
-        }
-      } else if (tools.eqs(e.type, "mouseout")) {
-        tmp = tools.getMDom(setting, relatedTarget, [{tagName: "a", attrName: "treeNode" + consts.id.A}]);
-        if (!tmp) {
-          tId = "remove";
-          nodeEventType = "hoverOutNode";
-        }
-      } else if (tools.eqs(e.type, "mousedown")) {
-        tmp = tools.getMDom(setting, target, [{tagName: "a", attrName: "treeNode" + consts.id.A}]);
-        if (tmp) {
-          tId = tools.getNodeMainDom(tmp).id;
-          nodeEventType = "mousedownNode";
-        }
-      }
-      if (tId.length > 0) {
-        node = data.getNodeCache(setting, tId);
-        switch (nodeEventType) {
-          case "mousedownNode" :
-            nodeEventCallback = _handler.onMousedownNode;
-            break;
-          case "hoverOverNode" :
-            nodeEventCallback = _handler.onHoverOverNode;
-            break;
-          case "hoverOutNode" :
-            nodeEventCallback = _handler.onHoverOutNode;
-            break;
-        }
-      }
-      var proxyResult = {
-        stop: false,
-        node: node,
-        nodeEventType: nodeEventType,
-        nodeEventCallback: nodeEventCallback,
-        treeEventType: treeEventType,
-        treeEventCallback: treeEventCallback
-      };
-      return proxyResult
-    },
-    //default init node of exedit
-    _initNode = function (setting, level, n, parentNode, isFirstNode, isLastNode, openFlag) {
-      if (!n) return;
-      n.isHover = false;
-      n.editNameFlag = false;
-    },
-    //update zTreeObj, add method of edit
-    _zTreeTools = function (setting, zTreeTools) {
-      zTreeTools.cancelEditName = function (newName) {
-        var root = data.getRoot(this.setting);
-        if (!root.curEditNode) return;
-        view.cancelCurEditNode(this.setting, newName ? newName : null, true);
-      }
-      zTreeTools.copyNode = function (targetNode, node, moveType, isSilent) {
-        if (!node) return null;
-        var isParent = data.nodeIsParent(setting, targetNode);
-        if (targetNode && !isParent && this.setting.data.keep.leaf && moveType === consts.move.TYPE_INNER) return null;
-        var _this = this,
-          newNode = tools.clone(node);
-        if (!targetNode) {
-          targetNode = null;
-          moveType = consts.move.TYPE_INNER;
-        }
-        if (moveType == consts.move.TYPE_INNER) {
-          function copyCallback() {
-            view.addNodes(_this.setting, targetNode, -1, [newNode], isSilent);
-          }
-
-          if (tools.canAsync(this.setting, targetNode)) {
-            view.asyncNode(this.setting, targetNode, isSilent, copyCallback);
-          } else {
-            copyCallback();
-          }
-        } else {
-          view.addNodes(this.setting, targetNode.parentNode, -1, [newNode], isSilent);
-          view.moveNode(this.setting, targetNode, newNode, moveType, false, isSilent);
-        }
-        return newNode;
-      }
-      zTreeTools.editName = function (node) {
-        if (!node || !node.tId || node !== data.getNodeCache(this.setting, node.tId)) return;
-        if (node.parentTId) view.expandCollapseParentNode(this.setting, node.getParentNode(), true);
-        view.editNode(this.setting, node)
-      }
-      zTreeTools.moveNode = function (targetNode, node, moveType, isSilent) {
-        if (!node) return node;
-        var isParent = data.nodeIsParent(setting, targetNode);
-        if (targetNode && !isParent && this.setting.data.keep.leaf && moveType === consts.move.TYPE_INNER) {
-          return null;
-        } else if (targetNode && ((node.parentTId == targetNode.tId && moveType == consts.move.TYPE_INNER) || $$(node, this.setting).find("#" + targetNode.tId).length > 0)) {
-          return null;
-        } else if (!targetNode) {
-          targetNode = null;
-        }
-        var _this = this;
-
-        function moveCallback() {
-          view.moveNode(_this.setting, targetNode, node, moveType, false, isSilent);
-        }
-
-        if (tools.canAsync(this.setting, targetNode) && moveType === consts.move.TYPE_INNER) {
-          view.asyncNode(this.setting, targetNode, isSilent, moveCallback);
-        } else {
-          moveCallback();
-        }
-        return node;
-      }
-      zTreeTools.setEditable = function (editable) {
-        this.setting.edit.enable = editable;
-        return this.refresh();
-      }
-    },
-    //method of operate data
-    _data = {
-      setSonNodeLevel: function (setting, parentNode, node) {
-        if (!node) return;
-        var children = data.nodeChildren(setting, node);
-        node.level = (parentNode) ? parentNode.level + 1 : 0;
-        if (!children) return;
-        for (var i = 0, l = children.length; i < l; i++) {
-          if (children[i]) data.setSonNodeLevel(setting, node, children[i]);
-        }
-      }
-    },
-    //method of event proxy
-    _event = {},
-    //method of event handler
-    _handler = {
-      onHoverOverNode: function (event, node) {
-        var setting = data.getSetting(event.data.treeId),
-          root = data.getRoot(setting);
-        if (root.curHoverNode != node) {
-          _handler.onHoverOutNode(event);
-        }
-        root.curHoverNode = node;
-        view.addHoverDom(setting, node);
-      },
-      onHoverOutNode: function (event, node) {
-        var setting = data.getSetting(event.data.treeId),
-          root = data.getRoot(setting);
-        if (root.curHoverNode && !data.isSelectedNode(setting, root.curHoverNode)) {
-          view.removeTreeDom(setting, root.curHoverNode);
-          root.curHoverNode = null;
-        }
-      },
-      onMousedownNode: function (eventMouseDown, _node) {
-        var i, l,
-          setting = data.getSetting(eventMouseDown.data.treeId),
-          root = data.getRoot(setting), roots = data.getRoots();
-        //right click can't drag & drop
-        if (eventMouseDown.button == 2 || !setting.edit.enable || (!setting.edit.drag.isCopy && !setting.edit.drag.isMove)) return true;
-
-        //input of edit node name can't drag & drop
-        var target = eventMouseDown.target,
-          _nodes = data.getRoot(setting).curSelectedList,
-          nodes = [];
-        if (!data.isSelectedNode(setting, _node)) {
-          nodes = [_node];
-        } else {
-          for (i = 0, l = _nodes.length; i < l; i++) {
-            if (_nodes[i].editNameFlag && tools.eqs(target.tagName, "input") && target.getAttribute("treeNode" + consts.id.INPUT) !== null) {
-              return true;
-            }
-            nodes.push(_nodes[i]);
-            if (nodes[0].parentTId !== _nodes[i].parentTId) {
-              nodes = [_node];
-              break;
-            }
-          }
-        }
-
-        view.editNodeBlur = true;
-        view.cancelCurEditNode(setting);
-
-        var doc = $(setting.treeObj.get(0).ownerDocument),
-          body = $(setting.treeObj.get(0).ownerDocument.body), curNode, tmpArrow, tmpTarget,
-          isOtherTree = false,
-          targetSetting = setting,
-          sourceSetting = setting,
-          preNode, nextNode,
-          preTmpTargetNodeId = null,
-          preTmpMoveType = null,
-          tmpTargetNodeId = null,
-          moveType = consts.move.TYPE_INNER,
-          mouseDownX = eventMouseDown.clientX,
-          mouseDownY = eventMouseDown.clientY,
-          startTime = (new Date()).getTime();
-
-        if (tools.uCanDo(setting)) {
-          doc.bind("mousemove", _docMouseMove);
-        }
-
-        function _docMouseMove(event) {
-          //avoid start drag after click node
-          if (root.dragFlag == 0 && Math.abs(mouseDownX - event.clientX) < setting.edit.drag.minMoveSize
-            && Math.abs(mouseDownY - event.clientY) < setting.edit.drag.minMoveSize) {
-            return true;
-          }
-          var i, l, tmpNode, tmpDom, tmpNodes;
-          body.css("cursor", "pointer");
-
-          if (root.dragFlag == 0) {
-            if (tools.apply(setting.callback.beforeDrag, [setting.treeId, nodes], true) == false) {
-              _docMouseUp(event);
-              return true;
-            }
-
-            for (i = 0, l = nodes.length; i < l; i++) {
-              if (i == 0) {
-                root.dragNodeShowBefore = [];
-              }
-              tmpNode = nodes[i];
-              if (data.nodeIsParent(setting, tmpNode) && tmpNode.open) {
-                view.expandCollapseNode(setting, tmpNode, !tmpNode.open);
-                root.dragNodeShowBefore[tmpNode.tId] = true;
-              } else {
-                root.dragNodeShowBefore[tmpNode.tId] = false;
-              }
-            }
-
-            root.dragFlag = 1;
-            roots.showHoverDom = false;
-            tools.showIfameMask(setting, true);
-
-            //sort
-            var isOrder = true, lastIndex = -1;
-            if (nodes.length > 1) {
-              var pNodes = nodes[0].parentTId ? data.nodeChildren(setting, nodes[0].getParentNode()) : data.getNodes(setting);
-              tmpNodes = [];
-              for (i = 0, l = pNodes.length; i < l; i++) {
-                if (root.dragNodeShowBefore[pNodes[i].tId] !== undefined) {
-                  if (isOrder && lastIndex > -1 && (lastIndex + 1) !== i) {
-                    isOrder = false;
-                  }
-                  tmpNodes.push(pNodes[i]);
-                  lastIndex = i;
-                }
-                if (nodes.length === tmpNodes.length) {
-                  nodes = tmpNodes;
-                  break;
-                }
-              }
-            }
-            if (isOrder) {
-              preNode = nodes[0].getPreNode();
-              nextNode = nodes[nodes.length - 1].getNextNode();
-            }
-
-            //set node in selected
-            curNode = $$("<ul class='zTreeDragUL'></ul>", setting);
-            for (i = 0, l = nodes.length; i < l; i++) {
-              tmpNode = nodes[i];
-              tmpNode.editNameFlag = false;
-              view.selectNode(setting, tmpNode, i > 0);
-              view.removeTreeDom(setting, tmpNode);
-
-              if (i > setting.edit.drag.maxShowNodeNum - 1) {
-                continue;
-              }
-
-              tmpDom = $$("<li id='" + tmpNode.tId + "_tmp'></li>", setting);
-              tmpDom.append($$(tmpNode, consts.id.A, setting).clone());
-              tmpDom.css("padding", "0");
-              tmpDom.children("#" + tmpNode.tId + consts.id.A).removeClass(consts.node.CURSELECTED);
-              curNode.append(tmpDom);
-              if (i == setting.edit.drag.maxShowNodeNum - 1) {
-                tmpDom = $$("<li id='" + tmpNode.tId + "_moretmp'><a>  ...  </a></li>", setting);
-                curNode.append(tmpDom);
-              }
-            }
-            curNode.attr("id", nodes[0].tId + consts.id.UL + "_tmp");
-            curNode.addClass(setting.treeObj.attr("class"));
-            curNode.appendTo(body);
-
-            tmpArrow = $$("<span class='tmpzTreeMove_arrow'></span>", setting);
-            tmpArrow.attr("id", "zTreeMove_arrow_tmp");
-            tmpArrow.appendTo(body);
-
-            setting.treeObj.trigger(consts.event.DRAG, [event, setting.treeId, nodes]);
-          }
-
-          if (root.dragFlag == 1) {
-            if (tmpTarget && tmpArrow.attr("id") == event.target.id && tmpTargetNodeId && (event.clientX + doc.scrollLeft() + 2) > ($("#" + tmpTargetNodeId + consts.id.A, tmpTarget).offset().left)) {
-              var xT = $("#" + tmpTargetNodeId + consts.id.A, tmpTarget);
-              event.target = (xT.length > 0) ? xT.get(0) : event.target;
-            } else if (tmpTarget) {
-              tmpTarget.removeClass(consts.node.TMPTARGET_TREE);
-              if (tmpTargetNodeId) $("#" + tmpTargetNodeId + consts.id.A, tmpTarget).removeClass(consts.node.TMPTARGET_NODE + "_" + consts.move.TYPE_PREV)
-                .removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_NEXT).removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_INNER);
-            }
-            tmpTarget = null;
-            tmpTargetNodeId = null;
-
-            //judge drag & drop in multi ztree
-            isOtherTree = false;
-            targetSetting = setting;
-            var settings = data.getSettings();
-            for (var s in settings) {
-              if (settings[s].treeId && settings[s].edit.enable && settings[s].treeId != setting.treeId
-                && (event.target.id == settings[s].treeId || $(event.target).parents("#" + settings[s].treeId).length > 0)) {
-                isOtherTree = true;
-                targetSetting = settings[s];
-              }
-            }
-
-            var docScrollTop = doc.scrollTop(),
-              docScrollLeft = doc.scrollLeft(),
-              treeOffset = targetSetting.treeObj.offset(),
-              scrollHeight = targetSetting.treeObj.get(0).scrollHeight,
-              scrollWidth = targetSetting.treeObj.get(0).scrollWidth,
-              dTop = (event.clientY + docScrollTop - treeOffset.top),
-              dBottom = (targetSetting.treeObj.height() + treeOffset.top - event.clientY - docScrollTop),
-              dLeft = (event.clientX + docScrollLeft - treeOffset.left),
-              dRight = (targetSetting.treeObj.width() + treeOffset.left - event.clientX - docScrollLeft),
-              isTop = (dTop < setting.edit.drag.borderMax && dTop > setting.edit.drag.borderMin),
-              isBottom = (dBottom < setting.edit.drag.borderMax && dBottom > setting.edit.drag.borderMin),
-              isLeft = (dLeft < setting.edit.drag.borderMax && dLeft > setting.edit.drag.borderMin),
-              isRight = (dRight < setting.edit.drag.borderMax && dRight > setting.edit.drag.borderMin),
-              isTreeInner = dTop > setting.edit.drag.borderMin && dBottom > setting.edit.drag.borderMin && dLeft > setting.edit.drag.borderMin && dRight > setting.edit.drag.borderMin,
-              isTreeTop = (isTop && targetSetting.treeObj.scrollTop() <= 0),
-              isTreeBottom = (isBottom && (targetSetting.treeObj.scrollTop() + targetSetting.treeObj.height() + 10) >= scrollHeight),
-              isTreeLeft = (isLeft && targetSetting.treeObj.scrollLeft() <= 0),
-              isTreeRight = (isRight && (targetSetting.treeObj.scrollLeft() + targetSetting.treeObj.width() + 10) >= scrollWidth);
-
-            if (event.target && tools.isChildOrSelf(event.target, targetSetting.treeId)) {
-              //get node <li> dom
-              var targetObj = event.target;
-              while (targetObj && targetObj.tagName && !tools.eqs(targetObj.tagName, "li") && targetObj.id != targetSetting.treeId) {
-                targetObj = targetObj.parentNode;
-              }
-
-              var canMove = true;
-              //don't move to self or children of self
-              for (i = 0, l = nodes.length; i < l; i++) {
-                tmpNode = nodes[i];
-                if (targetObj.id === tmpNode.tId) {
-                  canMove = false;
-                  break;
-                } else if ($$(tmpNode, setting).find("#" + targetObj.id).length > 0) {
-                  canMove = false;
-                  break;
-                }
-              }
-              if (canMove && event.target && tools.isChildOrSelf(event.target, targetObj.id + consts.id.A)) {
-                tmpTarget = $(targetObj);
-                tmpTargetNodeId = targetObj.id;
-              }
-            }
-
-            //the mouse must be in zTree
-            tmpNode = nodes[0];
-            if (isTreeInner && tools.isChildOrSelf(event.target, targetSetting.treeId)) {
-              //judge mouse move in root of ztree
-              if (!tmpTarget && (event.target.id == targetSetting.treeId || isTreeTop || isTreeBottom || isTreeLeft || isTreeRight) && (isOtherTree || (!isOtherTree && tmpNode.parentTId))) {
-                tmpTarget = targetSetting.treeObj;
-              }
-              //auto scroll top
-              if (isTop) {
-                targetSetting.treeObj.scrollTop(targetSetting.treeObj.scrollTop() - 10);
-              } else if (isBottom) {
-                targetSetting.treeObj.scrollTop(targetSetting.treeObj.scrollTop() + 10);
-              }
-              if (isLeft) {
-                targetSetting.treeObj.scrollLeft(targetSetting.treeObj.scrollLeft() - 10);
-              } else if (isRight) {
-                targetSetting.treeObj.scrollLeft(targetSetting.treeObj.scrollLeft() + 10);
-              }
-              //auto scroll left
-              if (tmpTarget && tmpTarget != targetSetting.treeObj && tmpTarget.offset().left < targetSetting.treeObj.offset().left) {
-                targetSetting.treeObj.scrollLeft(targetSetting.treeObj.scrollLeft() + tmpTarget.offset().left - targetSetting.treeObj.offset().left);
-              }
-            }
-
-            curNode.css({
-              "top": (event.clientY + docScrollTop + 3) + "px",
-              "left": (event.clientX + docScrollLeft + 3) + "px"
-            });
-
-            var dX = 0;
-            var dY = 0;
-            if (tmpTarget && tmpTarget.attr("id") != targetSetting.treeId) {
-              var tmpTargetNode = tmpTargetNodeId == null ? null : data.getNodeCache(targetSetting, tmpTargetNodeId),
-                isCopy = ((event.ctrlKey || event.metaKey) && setting.edit.drag.isMove && setting.edit.drag.isCopy) || (!setting.edit.drag.isMove && setting.edit.drag.isCopy),
-                isPrev = !!(preNode && tmpTargetNodeId === preNode.tId),
-                isNext = !!(nextNode && tmpTargetNodeId === nextNode.tId),
-                isInner = (tmpNode.parentTId && tmpNode.parentTId == tmpTargetNodeId),
-                canPrev = (isCopy || !isNext) && tools.apply(targetSetting.edit.drag.prev, [targetSetting.treeId, nodes, tmpTargetNode], !!targetSetting.edit.drag.prev),
-                canNext = (isCopy || !isPrev) && tools.apply(targetSetting.edit.drag.next, [targetSetting.treeId, nodes, tmpTargetNode], !!targetSetting.edit.drag.next),
-                canInner = (isCopy || !isInner) && !(targetSetting.data.keep.leaf && !data.nodeIsParent(setting, tmpTargetNode)) && tools.apply(targetSetting.edit.drag.inner, [targetSetting.treeId, nodes, tmpTargetNode], !!targetSetting.edit.drag.inner);
-
-              function clearMove() {
-                tmpTarget = null;
-                tmpTargetNodeId = "";
-                moveType = consts.move.TYPE_INNER;
-                tmpArrow.css({
-                  "display": "none"
-                });
-                if (window.zTreeMoveTimer) {
-                  clearTimeout(window.zTreeMoveTimer);
-                  window.zTreeMoveTargetNodeTId = null
-                }
-              }
-
-              if (!canPrev && !canNext && !canInner) {
-                clearMove();
-              } else {
-                var tmpTargetA = $("#" + tmpTargetNodeId + consts.id.A, tmpTarget),
-                  tmpNextA = tmpTargetNode.isLastNode ? null : $("#" + tmpTargetNode.getNextNode().tId + consts.id.A, tmpTarget.next()),
-                  tmpTop = tmpTargetA.offset().top,
-                  tmpLeft = tmpTargetA.offset().left,
-                  prevPercent = canPrev ? (canInner ? 0.25 : (canNext ? 0.5 : 1)) : -1,
-                  nextPercent = canNext ? (canInner ? 0.75 : (canPrev ? 0.5 : 0)) : -1,
-                  dY_percent = (event.clientY + docScrollTop - tmpTop) / tmpTargetA.height();
-
-                if ((prevPercent == 1 || dY_percent <= prevPercent && dY_percent >= -.2) && canPrev) {
-                  dX = 1 - tmpArrow.width();
-                  dY = tmpTop - tmpArrow.height() / 2;
-                  moveType = consts.move.TYPE_PREV;
-                } else if ((nextPercent == 0 || dY_percent >= nextPercent && dY_percent <= 1.2) && canNext) {
-                  dX = 1 - tmpArrow.width();
-                  dY = (tmpNextA == null || (data.nodeIsParent(setting, tmpTargetNode) && tmpTargetNode.open)) ? (tmpTop + tmpTargetA.height() - tmpArrow.height() / 2) : (tmpNextA.offset().top - tmpArrow.height() / 2);
-                  moveType = consts.move.TYPE_NEXT;
-                } else if (canInner) {
-                  dX = 5 - tmpArrow.width();
-                  dY = tmpTop;
-                  moveType = consts.move.TYPE_INNER;
-                } else {
-                  clearMove();
-                }
-
-                if (tmpTarget) {
-                  tmpArrow.css({
-                    "display": "block",
-                    "top": dY + "px",
-                    "left": (tmpLeft + dX) + "px"
-                  });
-                  tmpTargetA.addClass(consts.node.TMPTARGET_NODE + "_" + moveType);
-
-                  if (preTmpTargetNodeId != tmpTargetNodeId || preTmpMoveType != moveType) {
-                    startTime = (new Date()).getTime();
-                  }
-                  if (tmpTargetNode && data.nodeIsParent(setting, tmpTargetNode) && moveType == consts.move.TYPE_INNER) {
-                    var startTimer = true;
-                    if (window.zTreeMoveTimer && window.zTreeMoveTargetNodeTId !== tmpTargetNode.tId) {
-                      clearTimeout(window.zTreeMoveTimer);
-                      window.zTreeMoveTargetNodeTId = null;
-                    } else if (window.zTreeMoveTimer && window.zTreeMoveTargetNodeTId === tmpTargetNode.tId) {
-                      startTimer = false;
-                    }
-                    if (startTimer) {
-                      window.zTreeMoveTimer = setTimeout(function () {
-                        if (moveType != consts.move.TYPE_INNER) return;
-                        if (tmpTargetNode && data.nodeIsParent(setting, tmpTargetNode) && !tmpTargetNode.open && (new Date()).getTime() - startTime > targetSetting.edit.drag.autoOpenTime
-                          && tools.apply(targetSetting.callback.beforeDragOpen, [targetSetting.treeId, tmpTargetNode], true)) {
-                          view.switchNode(targetSetting, tmpTargetNode);
-                          if (targetSetting.edit.drag.autoExpandTrigger) {
-                            targetSetting.treeObj.trigger(consts.event.EXPAND, [targetSetting.treeId, tmpTargetNode]);
-                          }
-                        }
-                      }, targetSetting.edit.drag.autoOpenTime + 50);
-                      window.zTreeMoveTargetNodeTId = tmpTargetNode.tId;
-                    }
-                  }
-                }
-              }
-            } else {
-              moveType = consts.move.TYPE_INNER;
-              if (tmpTarget && tools.apply(targetSetting.edit.drag.inner, [targetSetting.treeId, nodes, null], !!targetSetting.edit.drag.inner)) {
-                tmpTarget.addClass(consts.node.TMPTARGET_TREE);
-              } else {
-                tmpTarget = null;
-              }
-              tmpArrow.css({
-                "display": "none"
-              });
-              if (window.zTreeMoveTimer) {
-                clearTimeout(window.zTreeMoveTimer);
-                window.zTreeMoveTargetNodeTId = null;
-              }
-            }
-            preTmpTargetNodeId = tmpTargetNodeId;
-            preTmpMoveType = moveType;
-
-            setting.treeObj.trigger(consts.event.DRAGMOVE, [event, setting.treeId, nodes]);
-          }
-          return false;
-        }
-
-        doc.bind("mouseup", _docMouseUp);
-
-        function _docMouseUp(event) {
-          if (window.zTreeMoveTimer) {
-            clearTimeout(window.zTreeMoveTimer);
-            window.zTreeMoveTargetNodeTId = null;
-          }
-          preTmpTargetNodeId = null;
-          preTmpMoveType = null;
-          doc.unbind("mousemove", _docMouseMove);
-          doc.unbind("mouseup", _docMouseUp);
-          doc.unbind("selectstart", _docSelect);
-          body.css("cursor", "");
-          if (tmpTarget) {
-            tmpTarget.removeClass(consts.node.TMPTARGET_TREE);
-            if (tmpTargetNodeId) $("#" + tmpTargetNodeId + consts.id.A, tmpTarget).removeClass(consts.node.TMPTARGET_NODE + "_" + consts.move.TYPE_PREV)
-              .removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_NEXT).removeClass(consts.node.TMPTARGET_NODE + "_" + _consts.move.TYPE_INNER);
-          }
-          tools.showIfameMask(setting, false);
-
-          roots.showHoverDom = true;
-          if (root.dragFlag == 0) return;
-          root.dragFlag = 0;
-
-          var i, l, tmpNode;
-          for (i = 0, l = nodes.length; i < l; i++) {
-            tmpNode = nodes[i];
-            if (data.nodeIsParent(setting, tmpNode) && root.dragNodeShowBefore[tmpNode.tId] && !tmpNode.open) {
-              view.expandCollapseNode(setting, tmpNode, !tmpNode.open);
-              delete root.dragNodeShowBefore[tmpNode.tId];
-            }
-          }
-
-          if (curNode) curNode.remove();
-          if (tmpArrow) tmpArrow.remove();
-
-          var isCopy = ((event.ctrlKey || event.metaKey) && setting.edit.drag.isMove && setting.edit.drag.isCopy) || (!setting.edit.drag.isMove && setting.edit.drag.isCopy);
-          if (!isCopy && tmpTarget && tmpTargetNodeId && nodes[0].parentTId && tmpTargetNodeId == nodes[0].parentTId && moveType == consts.move.TYPE_INNER) {
-            tmpTarget = null;
-          }
-          if (tmpTarget) {
-            var dragTargetNode = tmpTargetNodeId == null ? null : data.getNodeCache(targetSetting, tmpTargetNodeId);
-            if (tools.apply(setting.callback.beforeDrop, [targetSetting.treeId, nodes, dragTargetNode, moveType, isCopy], true) == false) {
-              view.selectNodes(sourceSetting, nodes);
-              return;
-            }
-            var newNodes = isCopy ? tools.clone(nodes) : nodes;
-
-            function dropCallback() {
-              if (isOtherTree) {
-                if (!isCopy) {
-                  for (var i = 0, l = nodes.length; i < l; i++) {
-                    view.removeNode(setting, nodes[i]);
-                  }
-                }
-                if (moveType == consts.move.TYPE_INNER) {
-                  view.addNodes(targetSetting, dragTargetNode, -1, newNodes);
-                } else {
-                  view.addNodes(targetSetting, dragTargetNode.getParentNode(), moveType == consts.move.TYPE_PREV ? dragTargetNode.getIndex() : dragTargetNode.getIndex() + 1, newNodes);
-                }
-              } else {
-                if (isCopy && moveType == consts.move.TYPE_INNER) {
-                  view.addNodes(targetSetting, dragTargetNode, -1, newNodes);
-                } else if (isCopy) {
-                  view.addNodes(targetSetting, dragTargetNode.getParentNode(), moveType == consts.move.TYPE_PREV ? dragTargetNode.getIndex() : dragTargetNode.getIndex() + 1, newNodes);
-                } else {
-                  if (moveType != consts.move.TYPE_NEXT) {
-                    for (i = 0, l = newNodes.length; i < l; i++) {
-                      view.moveNode(targetSetting, dragTargetNode, newNodes[i], moveType, false);
-                    }
-                  } else {
-                    for (i = -1, l = newNodes.length - 1; i < l; l--) {
-                      view.moveNode(targetSetting, dragTargetNode, newNodes[l], moveType, false);
-                    }
-                  }
-                }
-              }
-              view.selectNodes(targetSetting, newNodes);
-
-              var a = $$(newNodes[0], setting).get(0);
-              view.scrollIntoView(setting, a);
-
-              setting.treeObj.trigger(consts.event.DROP, [event, targetSetting.treeId, newNodes, dragTargetNode, moveType, isCopy]);
-            }
-
-            if (moveType == consts.move.TYPE_INNER && tools.canAsync(targetSetting, dragTargetNode)) {
-              view.asyncNode(targetSetting, dragTargetNode, false, dropCallback);
-            } else {
-              dropCallback();
-            }
-
-          } else {
-            view.selectNodes(sourceSetting, nodes);
-            setting.treeObj.trigger(consts.event.DROP, [event, setting.treeId, nodes, null, null, null]);
-          }
-        }
-
-        doc.bind("selectstart", _docSelect);
-
-        function _docSelect() {
-          return false;
-        }
-
-        // 2018-03-30 FireFox has fixed this issue.
-        //Avoid FireFox's Bug
-        //If zTree Div CSS set 'overflow', so drag node outside of zTree, and event.target is error.
-        // if(eventMouseDown.preventDefault) {
-        // 	eventMouseDown.preventDefault();
-        // }
-        return true;
-      }
-    },
-    //method of tools for zTree
-    _tools = {
-      getAbs: function (obj) {
-        var oRect = obj.getBoundingClientRect(),
-          scrollTop = document.body.scrollTop + document.documentElement.scrollTop,
-          scrollLeft = document.body.scrollLeft + document.documentElement.scrollLeft;
-        return [oRect.left + scrollLeft, oRect.top + scrollTop];
-      },
-      inputFocus: function (inputObj) {
-        if (inputObj.get(0)) {
-          inputObj.focus();
-          tools.setCursorPosition(inputObj.get(0), inputObj.val().length);
-        }
-      },
-      inputSelect: function (inputObj) {
-        if (inputObj.get(0)) {
-          inputObj.focus();
-          inputObj.select();
-        }
-      },
-      setCursorPosition: function (obj, pos) {
-        if (obj.setSelectionRange) {
-          obj.focus();
-          obj.setSelectionRange(pos, pos);
-        } else if (obj.createTextRange) {
-          var range = obj.createTextRange();
-          range.collapse(true);
-          range.moveEnd('character', pos);
-          range.moveStart('character', pos);
-          range.select();
-        }
-      },
-      showIfameMask: function (setting, showSign) {
-        var root = data.getRoot(setting);
-        //clear full mask
-        while (root.dragMaskList.length > 0) {
-          root.dragMaskList[0].remove();
-          root.dragMaskList.shift();
-        }
-        if (showSign) {
-          //show mask
-          var iframeList = $$("iframe", setting);
-          for (var i = 0, l = iframeList.length; i < l; i++) {
-            var obj = iframeList.get(i),
-              r = tools.getAbs(obj),
-              dragMask = $$("<div id='zTreeMask_" + i + "' class='zTreeMask' style='top:" + r[1] + "px; left:" + r[0] + "px; width:" + obj.offsetWidth + "px; height:" + obj.offsetHeight + "px;'></div>", setting);
-            dragMask.appendTo($$("body", setting));
-            root.dragMaskList.push(dragMask);
-          }
-        }
-      }
-    },
-    //method of operate ztree dom
-    _view = {
-      addEditBtn: function (setting, node) {
-        if (node.editNameFlag || $$(node, consts.id.EDIT, setting).length > 0) {
-          return;
-        }
-        if (!tools.apply(setting.edit.showRenameBtn, [setting.treeId, node], setting.edit.showRenameBtn)) {
-          return;
-        }
-        var aObj = $$(node, consts.id.A, setting),
-          editStr = "<span class='" + consts.className.BUTTON + " edit' id='" + node.tId + consts.id.EDIT + "' title='" + tools.apply(setting.edit.renameTitle, [setting.treeId, node], setting.edit.renameTitle) + "' treeNode" + consts.id.EDIT + " style='display:none;'></span>";
-        aObj.append(editStr);
-
-        $$(node, consts.id.EDIT, setting).bind('click',
-          function () {
-            if (!tools.uCanDo(setting) || tools.apply(setting.callback.beforeEditName, [setting.treeId, node], true) == false) return false;
-            view.editNode(setting, node);
-            return false;
-          }
-        ).show();
-      },
-      addRemoveBtn: function (setting, node) {
-        if (node.editNameFlag || $$(node, consts.id.REMOVE, setting).length > 0) {
-          return;
-        }
-        if (!tools.apply(setting.edit.showRemoveBtn, [setting.treeId, node], setting.edit.showRemoveBtn)) {
-          return;
-        }
-        var aObj = $$(node, consts.id.A, setting),
-          removeStr = "<span class='" + consts.className.BUTTON + " remove' id='" + node.tId + consts.id.REMOVE + "' title='" + tools.apply(setting.edit.removeTitle, [setting.treeId, node], setting.edit.removeTitle) + "' treeNode" + consts.id.REMOVE + " style='display:none;'></span>";
-        aObj.append(removeStr);
-
-        $$(node, consts.id.REMOVE, setting).bind('click',
-          function () {
-            if (!tools.uCanDo(setting) || tools.apply(setting.callback.beforeRemove, [setting.treeId, node], true) == false) return false;
-            view.removeNode(setting, node);
-            setting.treeObj.trigger(consts.event.REMOVE, [setting.treeId, node]);
-            return false;
-          }
-        ).bind('mousedown',
-          function (eventMouseDown) {
-            return true;
-          }
-        ).show();
-      },
-      addHoverDom: function (setting, node) {
-        if (data.getRoots().showHoverDom) {
-          node.isHover = true;
-          if (setting.edit.enable) {
-            view.addEditBtn(setting, node);
-            view.addRemoveBtn(setting, node);
-          }
-          tools.apply(setting.view.addHoverDom, [setting.treeId, node]);
-        }
-      },
-      cancelCurEditNode: function (setting, forceName, isCancel) {
-        var root = data.getRoot(setting),
-          node = root.curEditNode;
-
-        if (node) {
-          var inputObj = root.curEditInput,
-            newName = forceName ? forceName : (isCancel ? data.nodeName(setting, node) : inputObj.val());
-          if (tools.apply(setting.callback.beforeRename, [setting.treeId, node, newName, isCancel], true) === false) {
-            return false;
-          }
-          data.nodeName(setting, node, newName);
-          var aObj = $$(node, consts.id.A, setting);
-          aObj.removeClass(consts.node.CURSELECTED_EDIT);
-          inputObj.unbind();
-          view.setNodeName(setting, node);
-          node.editNameFlag = false;
-          root.curEditNode = null;
-          root.curEditInput = null;
-          view.selectNode(setting, node, false);
-          setting.treeObj.trigger(consts.event.RENAME, [setting.treeId, node, isCancel]);
-        }
-        root.noSelection = true;
-        return true;
-      },
-      editNode: function (setting, node) {
-        var root = data.getRoot(setting);
-        view.editNodeBlur = false;
-        if (data.isSelectedNode(setting, node) && root.curEditNode == node && node.editNameFlag) {
-          setTimeout(function () {
-            tools.inputFocus(root.curEditInput);
-          }, 0);
-          return;
-        }
-        node.editNameFlag = true;
-        view.removeTreeDom(setting, node);
-        view.cancelCurEditNode(setting);
-        view.selectNode(setting, node, false);
-        $$(node, consts.id.SPAN, setting).html("<input type=text class='rename' id='" + node.tId + consts.id.INPUT + "' treeNode" + consts.id.INPUT + " >");
-        var inputObj = $$(node, consts.id.INPUT, setting);
-        inputObj.attr("value", data.nodeName(setting, node));
-        if (setting.edit.editNameSelectAll) {
-          tools.inputSelect(inputObj);
-        } else {
-          tools.inputFocus(inputObj);
-        }
-
-        inputObj.bind('blur', function (event) {
-          if (!view.editNodeBlur) {
-            view.cancelCurEditNode(setting);
-          }
-        }).bind('keydown', function (event) {
-          if (event.keyCode == "13") {
-            view.editNodeBlur = true;
-            view.cancelCurEditNode(setting);
-          } else if (event.keyCode == "27") {
-            view.cancelCurEditNode(setting, null, true);
-          }
-        }).bind('click', function (event) {
-          return false;
-        }).bind('dblclick', function (event) {
-          return false;
-        });
-
-        $$(node, consts.id.A, setting).addClass(consts.node.CURSELECTED_EDIT);
-        root.curEditInput = inputObj;
-        root.noSelection = false;
-        root.curEditNode = node;
-      },
-      moveNode: function (setting, targetNode, node, moveType, animateFlag, isSilent) {
-        var root = data.getRoot(setting);
-        if (targetNode == node) return;
-        if (setting.data.keep.leaf && targetNode && !data.nodeIsParent(setting, targetNode) && moveType == consts.move.TYPE_INNER) return;
-        var oldParentNode = (node.parentTId ? node.getParentNode() : root),
-          targetNodeIsRoot = (targetNode === null || targetNode == root);
-        if (targetNodeIsRoot && targetNode === null) targetNode = root;
-        if (targetNodeIsRoot) moveType = consts.move.TYPE_INNER;
-        var targetParentNode = (targetNode.parentTId ? targetNode.getParentNode() : root);
-
-        if (moveType != consts.move.TYPE_PREV && moveType != consts.move.TYPE_NEXT) {
-          moveType = consts.move.TYPE_INNER;
-        }
-
-        if (moveType == consts.move.TYPE_INNER) {
-          if (targetNodeIsRoot) {
-            //parentTId of root node is null
-            node.parentTId = null;
-          } else {
-            if (!data.nodeIsParent(setting, targetNode)) {
-              data.nodeIsParent(setting, targetNode, true);
-              targetNode.open = !!targetNode.open;
-              view.setNodeLineIcos(setting, targetNode);
-            }
-            node.parentTId = targetNode.tId;
-          }
-        }
-
-        //move node Dom
-        var targetObj, target_ulObj;
-        if (targetNodeIsRoot) {
-          targetObj = setting.treeObj;
-          target_ulObj = targetObj;
-        } else {
-          if (!isSilent && moveType == consts.move.TYPE_INNER) {
-            view.expandCollapseNode(setting, targetNode, true, false);
-          } else if (!isSilent) {
-            view.expandCollapseNode(setting, targetNode.getParentNode(), true, false);
-          }
-          targetObj = $$(targetNode, setting);
-          target_ulObj = $$(targetNode, consts.id.UL, setting);
-          if (!!targetObj.get(0) && !target_ulObj.get(0)) {
-            var ulstr = [];
-            view.makeUlHtml(setting, targetNode, ulstr, '');
-            targetObj.append(ulstr.join(''));
-          }
-          target_ulObj = $$(targetNode, consts.id.UL, setting);
-        }
-        var nodeDom = $$(node, setting);
-        if (!nodeDom.get(0)) {
-          nodeDom = view.appendNodes(setting, node.level, [node], null, -1, false, true).join('');
-        } else if (!targetObj.get(0)) {
-          nodeDom.remove();
-        }
-        if (target_ulObj.get(0) && moveType == consts.move.TYPE_INNER) {
-          target_ulObj.append(nodeDom);
-        } else if (targetObj.get(0) && moveType == consts.move.TYPE_PREV) {
-          targetObj.before(nodeDom);
-        } else if (targetObj.get(0) && moveType == consts.move.TYPE_NEXT) {
-          targetObj.after(nodeDom);
-        }
-
-        //repair the data after move
-        var i, l,
-          tmpSrcIndex = -1,
-          tmpTargetIndex = 0,
-          oldNeighbor = null,
-          newNeighbor = null,
-          oldLevel = node.level;
-        var oldChildren = data.nodeChildren(setting, oldParentNode);
-        var targetParentChildren = data.nodeChildren(setting, targetParentNode);
-        var targetChildren = data.nodeChildren(setting, targetNode);
-        if (node.isFirstNode) {
-          tmpSrcIndex = 0;
-          if (oldChildren.length > 1) {
-            oldNeighbor = oldChildren[1];
-            oldNeighbor.isFirstNode = true;
-          }
-        } else if (node.isLastNode) {
-          tmpSrcIndex = oldChildren.length - 1;
-          oldNeighbor = oldChildren[tmpSrcIndex - 1];
-          oldNeighbor.isLastNode = true;
-        } else {
-          for (i = 0, l = oldChildren.length; i < l; i++) {
-            if (oldChildren[i].tId == node.tId) {
-              tmpSrcIndex = i;
-              break;
-            }
-          }
-        }
-        if (tmpSrcIndex >= 0) {
-          oldChildren.splice(tmpSrcIndex, 1);
-        }
-        if (moveType != consts.move.TYPE_INNER) {
-          for (i = 0, l = targetParentChildren.length; i < l; i++) {
-            if (targetParentChildren[i].tId == targetNode.tId) tmpTargetIndex = i;
-          }
-        }
-        if (moveType == consts.move.TYPE_INNER) {
-          if (!targetChildren) {
-            targetChildren = data.nodeChildren(setting, targetNode, []);
-          }
-          if (targetChildren.length > 0) {
-            newNeighbor = targetChildren[targetChildren.length - 1];
-            newNeighbor.isLastNode = false;
-          }
-          targetChildren.splice(targetChildren.length, 0, node);
-          node.isLastNode = true;
-          node.isFirstNode = (targetChildren.length == 1);
-        } else if (targetNode.isFirstNode && moveType == consts.move.TYPE_PREV) {
-          targetParentChildren.splice(tmpTargetIndex, 0, node);
-          newNeighbor = targetNode;
-          newNeighbor.isFirstNode = false;
-          node.parentTId = targetNode.parentTId;
-          node.isFirstNode = true;
-          node.isLastNode = false;
-
-        } else if (targetNode.isLastNode && moveType == consts.move.TYPE_NEXT) {
-          targetParentChildren.splice(tmpTargetIndex + 1, 0, node);
-          newNeighbor = targetNode;
-          newNeighbor.isLastNode = false;
-          node.parentTId = targetNode.parentTId;
-          node.isFirstNode = false;
-          node.isLastNode = true;
-
-        } else {
-          if (moveType == consts.move.TYPE_PREV) {
-            targetParentChildren.splice(tmpTargetIndex, 0, node);
-          } else {
-            targetParentChildren.splice(tmpTargetIndex + 1, 0, node);
-          }
-          node.parentTId = targetNode.parentTId;
-          node.isFirstNode = false;
-          node.isLastNode = false;
-        }
-        data.fixPIdKeyValue(setting, node);
-        data.setSonNodeLevel(setting, node.getParentNode(), node);
-
-        //repair node what been moved
-        view.setNodeLineIcos(setting, node);
-        view.repairNodeLevelClass(setting, node, oldLevel);
-
-        //repair node's old parentNode dom
-        if (!setting.data.keep.parent && oldChildren.length < 1) {
-          //old parentNode has no child nodes
-          data.nodeIsParent(setting, oldParentNode, false);
-          oldParentNode.open = false;
-          var tmp_ulObj = $$(oldParentNode, consts.id.UL, setting),
-            tmp_switchObj = $$(oldParentNode, consts.id.SWITCH, setting),
-            tmp_icoObj = $$(oldParentNode, consts.id.ICON, setting);
-          view.replaceSwitchClass(oldParentNode, tmp_switchObj, consts.folder.DOCU);
-          view.replaceIcoClass(oldParentNode, tmp_icoObj, consts.folder.DOCU);
-          tmp_ulObj.css("display", "none");
-
-        } else if (oldNeighbor) {
-          //old neigbor node
-          view.setNodeLineIcos(setting, oldNeighbor);
-        }
-
-        //new neigbor node
-        if (newNeighbor) {
-          view.setNodeLineIcos(setting, newNeighbor);
-        }
-
-        //repair checkbox / radio
-        if (!!setting.check && setting.check.enable && view.repairChkClass) {
-          view.repairChkClass(setting, oldParentNode);
-          view.repairParentChkClassWithSelf(setting, oldParentNode);
-          if (oldParentNode != node.parent)
-            view.repairParentChkClassWithSelf(setting, node);
-        }
-
-        //expand parents after move
-        if (!isSilent) {
-          view.expandCollapseParentNode(setting, node.getParentNode(), true, animateFlag);
-        }
-      },
-      removeEditBtn: function (setting, node) {
-        $$(node, consts.id.EDIT, setting).unbind().remove();
-      },
-      removeRemoveBtn: function (setting, node) {
-        $$(node, consts.id.REMOVE, setting).unbind().remove();
-      },
-      removeTreeDom: function (setting, node) {
-        node.isHover = false;
-        view.removeEditBtn(setting, node);
-        view.removeRemoveBtn(setting, node);
-        tools.apply(setting.view.removeHoverDom, [setting.treeId, node]);
-      },
-      repairNodeLevelClass: function (setting, node, oldLevel) {
-        if (oldLevel === node.level) return;
-        var liObj = $$(node, setting),
-          aObj = $$(node, consts.id.A, setting),
-          ulObj = $$(node, consts.id.UL, setting),
-          oldClass = consts.className.LEVEL + oldLevel,
-          newClass = consts.className.LEVEL + node.level;
-        liObj.removeClass(oldClass);
-        liObj.addClass(newClass);
-        aObj.removeClass(oldClass);
-        aObj.addClass(newClass);
-        ulObj.removeClass(oldClass);
-        ulObj.addClass(newClass);
-      },
-      selectNodes: function (setting, nodes) {
-        for (var i = 0, l = nodes.length; i < l; i++) {
-          view.selectNode(setting, nodes[i], i > 0);
-        }
-      }
-    },
-
-    _z = {
-      tools: _tools,
-      view: _view,
-      event: _event,
-      data: _data
-    };
-  $.extend(true, $.fn.zTree.consts, _consts);
-  $.extend(true, $.fn.zTree._z, _z);
-
-  var zt = $.fn.zTree,
-    tools = zt._z.tools,
-    consts = zt.consts,
-    view = zt._z.view,
-    data = zt._z.data,
-    event = zt._z.event,
-    $$ = tools.$;
-
-  data.exSetting(_setting);
-  data.addInitBind(_bindEvent);
-  data.addInitUnBind(_unbindEvent);
-  data.addInitCache(_initCache);
-  data.addInitNode(_initNode);
-  data.addInitProxy(_eventProxy);
-  data.addInitRoot(_initRoot);
-  data.addZTreeTools(_zTreeTools);
-
-  var _cancelPreSelectedNode = view.cancelPreSelectedNode;
-  view.cancelPreSelectedNode = function (setting, node) {
-    var list = data.getRoot(setting).curSelectedList;
-    for (var i = 0, j = list.length; i < j; i++) {
-      if (!node || node === list[i]) {
-        view.removeTreeDom(setting, list[i]);
-        if (node) break;
-      }
-    }
-    if (_cancelPreSelectedNode) _cancelPreSelectedNode.apply(view, arguments);
-  }
-
-  var _createNodes = view.createNodes;
-  view.createNodes = function (setting, level, nodes, parentNode, index) {
-    if (_createNodes) {
-      _createNodes.apply(view, arguments);
-    }
-    if (!nodes) return;
-    if (view.repairParentChkClassWithSelf) {
-      view.repairParentChkClassWithSelf(setting, parentNode);
-    }
-  }
-
-  var _makeNodeUrl = view.makeNodeUrl;
-  view.makeNodeUrl = function (setting, node) {
-    return setting.edit.enable ? null : (_makeNodeUrl.apply(view, arguments));
-  }
-
-  var _removeNode = view.removeNode;
-  view.removeNode = function (setting, node) {
-    var root = data.getRoot(setting);
-    if (root.curEditNode === node) root.curEditNode = null;
-    if (_removeNode) {
-      _removeNode.apply(view, arguments);
-    }
-  }
-
-  var _selectNode = view.selectNode;
-  view.selectNode = function (setting, node, addFlag) {
-    var root = data.getRoot(setting);
-    if (data.isSelectedNode(setting, node) && root.curEditNode == node && node.editNameFlag) {
-      return false;
-    }
-    if (_selectNode) _selectNode.apply(view, arguments);
-    view.addHoverDom(setting, node);
-    return true;
-  }
-
-  var _uCanDo = tools.uCanDo;
-  tools.uCanDo = function (setting, e) {
-    var root = data.getRoot(setting);
-    if (e && (tools.eqs(e.type, "mouseover") || tools.eqs(e.type, "mouseout") || tools.eqs(e.type, "mousedown") || tools.eqs(e.type, "mouseup"))) {
-      return true;
-    }
-    if (root.curEditNode) {
-      view.editNodeBlur = false;
-      root.curEditInput.focus();
-    }
-    return (!root.curEditNode) && (_uCanDo ? _uCanDo.apply(view, arguments) : true);
-  }
-})(jQuery);
-
-
-/***/ }),
-
 /***/ "9b43":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16518,6 +17949,20 @@ module.exports = function (key) {
 
 /***/ }),
 
+/***/ "9c80":
+/***/ (function(module, exports) {
+
+module.exports = function (exec) {
+  try {
+    return { e: false, v: exec() };
+  } catch (e) {
+    return { e: true, v: e };
+  }
+};
+
+
+/***/ }),
+
 /***/ "9def":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16538,6 +17983,17 @@ module.exports = function (it) {
 module.exports = !__webpack_require__("79e5")(function () {
   return Object.defineProperty({}, 'a', { get: function () { return 7; } }).a != 7;
 });
+
+
+/***/ }),
+
+/***/ "a25f":
+/***/ (function(module, exports, __webpack_require__) {
+
+var global = __webpack_require__("7726");
+var navigator = global.navigator;
+
+module.exports = navigator && navigator.userAgent || '';
 
 
 /***/ }),
@@ -16668,6 +18124,32 @@ __webpack_require__("214f")('replace', 2, function (defined, REPLACE, $replace, 
 
 /***/ }),
 
+/***/ "a5b8":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// 25.4.1.5 NewPromiseCapability(C)
+var aFunction = __webpack_require__("d8e8");
+
+function PromiseCapability(C) {
+  var resolve, reject;
+  this.promise = new C(function ($$resolve, $$reject) {
+    if (resolve !== undefined || reject !== undefined) throw TypeError('Bad Promise constructor');
+    resolve = $$resolve;
+    reject = $$reject;
+  });
+  this.resolve = aFunction(resolve);
+  this.reject = aFunction(reject);
+}
+
+module.exports.f = function (C) {
+  return new PromiseCapability(C);
+};
+
+
+/***/ }),
+
 /***/ "aae3":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16696,6 +18178,36 @@ __webpack_require__("5ca1")({
 }, {
   exec: regexpExec
 });
+
+
+/***/ }),
+
+/***/ "b6fb":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_284c42aa_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("e8ba");
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_284c42aa_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_8_oneOf_1_0_node_modules_css_loader_index_js_ref_8_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_8_oneOf_1_2_node_modules_sass_loader_dist_cjs_js_ref_8_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_ztree_vue_vue_type_style_index_0_id_284c42aa_scoped_true_lang_scss___WEBPACK_IMPORTED_MODULE_0__);
+/* unused harmony reexport * */
+
+
+/***/ }),
+
+/***/ "bcaa":
+/***/ (function(module, exports, __webpack_require__) {
+
+var anObject = __webpack_require__("cb7c");
+var isObject = __webpack_require__("d3f4");
+var newPromiseCapability = __webpack_require__("a5b8");
+
+module.exports = function (C, x) {
+  anObject(C);
+  if (isObject(x) && x.constructor === C) return x;
+  var promiseCapability = newPromiseCapability.f(C);
+  var resolve = promiseCapability.resolve;
+  resolve(x);
+  return promiseCapability.promise;
+};
 
 
 /***/ }),
@@ -16742,13 +18254,6 @@ module.exports = function (IS_INCLUDES) {
 
 /***/ }),
 
-/***/ "c3bd":
-/***/ (function(module, exports, __webpack_require__) {
-
-// extracted by mini-css-extract-plugin
-
-/***/ }),
-
 /***/ "c69a":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16778,6 +18283,19 @@ var isObject = __webpack_require__("d3f4");
 module.exports = function (it) {
   if (!isObject(it)) throw TypeError(it + ' is not an object!');
   return it;
+};
+
+
+/***/ }),
+
+/***/ "cd1c":
+/***/ (function(module, exports, __webpack_require__) {
+
+// 9.4.2.3 ArraySpeciesCreate(originalArray, length)
+var speciesConstructor = __webpack_require__("e853");
+
+module.exports = function (original, length) {
+  return new (speciesConstructor(original))(length);
 };
 
 
@@ -16843,6 +18361,18 @@ module.exports = function (it) {
 
 /***/ }),
 
+/***/ "dcbc":
+/***/ (function(module, exports, __webpack_require__) {
+
+var redefine = __webpack_require__("2aba");
+module.exports = function (target, src, safe) {
+  for (var key in src) redefine(target, key, src[key], safe);
+  return target;
+};
+
+
+/***/ }),
+
 /***/ "e11e":
 /***/ (function(module, exports) {
 
@@ -16850,6 +18380,64 @@ module.exports = function (it) {
 module.exports = (
   'constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf'
 ).split(',');
+
+
+/***/ }),
+
+/***/ "e853":
+/***/ (function(module, exports, __webpack_require__) {
+
+var isObject = __webpack_require__("d3f4");
+var isArray = __webpack_require__("1169");
+var SPECIES = __webpack_require__("2b4c")('species');
+
+module.exports = function (original) {
+  var C;
+  if (isArray(original)) {
+    C = original.constructor;
+    // cross-realm fallback
+    if (typeof C == 'function' && (C === Array || isArray(C.prototype))) C = undefined;
+    if (isObject(C)) {
+      C = C[SPECIES];
+      if (C === null) C = undefined;
+    }
+  } return C === undefined ? Array : C;
+};
+
+
+/***/ }),
+
+/***/ "e8ba":
+/***/ (function(module, exports, __webpack_require__) {
+
+// extracted by mini-css-extract-plugin
+
+/***/ }),
+
+/***/ "ebd6":
+/***/ (function(module, exports, __webpack_require__) {
+
+// 7.3.20 SpeciesConstructor(O, defaultConstructor)
+var anObject = __webpack_require__("cb7c");
+var aFunction = __webpack_require__("d8e8");
+var SPECIES = __webpack_require__("2b4c")('species');
+module.exports = function (O, D) {
+  var C = anObject(O).constructor;
+  var S;
+  return C === undefined || (S = anObject(C)[SPECIES]) == undefined ? D : aFunction(S);
+};
+
+
+/***/ }),
+
+/***/ "f605":
+/***/ (function(module, exports) {
+
+module.exports = function (it, Constructor, name, forbiddenField) {
+  if (!(it instanceof Constructor) || (forbiddenField !== undefined && forbiddenField in it)) {
+    throw TypeError(name + ': incorrect invocation!');
+  } return it;
+};
 
 
 /***/ }),
@@ -16916,6 +18504,15 @@ module.exports = __webpack_require__("5537")('native-function-to-string', Functi
 
 /***/ }),
 
+/***/ "fab2":
+/***/ (function(module, exports, __webpack_require__) {
+
+var document = __webpack_require__("7726").document;
+module.exports = document && document.documentElement;
+
+
+/***/ }),
+
 /***/ "fb15":
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -16940,12 +18537,12 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"b03974c0-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/ztree.vue?vue&type=template&id=4e249ba6&scoped=true&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"b03974c0-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/ztree.vue?vue&type=template&id=284c42aa&scoped=true&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"ztree",attrs:{"id":_vm.ztreeId}})}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/ztree.vue?vue&type=template&id=4e249ba6&scoped=true&
+// CONCATENATED MODULE: ./src/components/ztree.vue?vue&type=template&id=284c42aa&scoped=true&
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es6.object.assign.js
 var es6_object_assign = __webpack_require__("f751");
@@ -16965,9 +18562,9 @@ if (!window.jQuery) {
   window.jQuery = jquery;
 }
 
-__webpack_require__("91e5");
+__webpack_require__("8073");
 
-__webpack_require__("5aa5");
+__webpack_require__("884e");
 
 __webpack_require__("8f98");
 
@@ -17002,214 +18599,154 @@ __webpack_require__("8f98");
         },
         callback: {
           beforeAsync: function beforeAsync() {
-            for (var _len = arguments.length, arg = new Array(_len), _key = 0; _key < _len; _key++) {
-              arg[_key] = arguments[_key];
-            }
+            var _this$$listeners;
 
-            _this.$emit.apply(_this, ['beforeAsync'].concat(arg));
+            return _this.$listeners.beforeAsync && (_this$$listeners = _this.$listeners).beforeAsync.apply(_this$$listeners, arguments);
           },
           beforeCheck: function beforeCheck() {
-            for (var _len2 = arguments.length, arg = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-              arg[_key2] = arguments[_key2];
-            }
+            var _this$$listeners2;
 
-            _this.$emit.apply(_this, ['beforeCheck'].concat(arg));
+            return _this.$listeners.beforeCheck && (_this$$listeners2 = _this.$listeners).beforeCheck.apply(_this$$listeners2, arguments);
           },
           beforeClick: function beforeClick() {
-            for (var _len3 = arguments.length, arg = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-              arg[_key3] = arguments[_key3];
-            }
+            var _this$$listeners3;
 
-            _this.$emit.apply(_this, ['beforeClick'].concat(arg));
+            return _this.$listeners.beforeClick && (_this$$listeners3 = _this.$listeners).beforeClick.apply(_this$$listeners3, arguments);
           },
           beforeCollapse: function beforeCollapse() {
-            for (var _len4 = arguments.length, arg = new Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
-              arg[_key4] = arguments[_key4];
-            }
+            var _this$$listeners4;
 
-            _this.$emit.apply(_this, ['beforeCollapse'].concat(arg));
+            return _this.$listeners.beforeCollapse && (_this$$listeners4 = _this.$listeners).beforeCollapse.apply(_this$$listeners4, arguments);
           },
           beforeDblClick: function beforeDblClick() {
-            for (var _len5 = arguments.length, arg = new Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-              arg[_key5] = arguments[_key5];
-            }
+            var _this$$listeners5;
 
-            _this.$emit.apply(_this, ['beforeDblClick'].concat(arg));
+            return _this.$listeners.beforeDblClick && (_this$$listeners5 = _this.$listeners).beforeDblClick.apply(_this$$listeners5, arguments);
           },
           beforeDrag: function beforeDrag() {
-            for (var _len6 = arguments.length, arg = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
-              arg[_key6] = arguments[_key6];
-            }
+            var _this$$listeners6;
 
-            _this.$emit.apply(_this, ['beforeDrag'].concat(arg));
+            return _this.$listeners.beforeDrag && (_this$$listeners6 = _this.$listeners).beforeDrag.apply(_this$$listeners6, arguments);
           },
           beforeDragOpen: function beforeDragOpen() {
-            for (var _len7 = arguments.length, arg = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
-              arg[_key7] = arguments[_key7];
-            }
+            var _this$$listeners7;
 
-            _this.$emit.apply(_this, ['beforeDragOpen'].concat(arg));
+            return _this.$listeners.beforeDragOpen && (_this$$listeners7 = _this.$listeners).beforeDragOpen.apply(_this$$listeners7, arguments);
           },
           beforeDrop: function beforeDrop() {
-            for (var _len8 = arguments.length, arg = new Array(_len8), _key8 = 0; _key8 < _len8; _key8++) {
-              arg[_key8] = arguments[_key8];
-            }
+            var _this$$listeners8;
 
-            _this.$emit.apply(_this, ['beforeDrop'].concat(arg));
+            return _this.$listeners.beforeDrop && (_this$$listeners8 = _this.$listeners).beforeDrop.apply(_this$$listeners8, arguments);
           },
           beforeEditName: function beforeEditName() {
-            for (var _len9 = arguments.length, arg = new Array(_len9), _key9 = 0; _key9 < _len9; _key9++) {
-              arg[_key9] = arguments[_key9];
-            }
+            var _this$$listeners9;
 
-            _this.$emit.apply(_this, ['beforeEditName'].concat(arg));
+            return _this.$listeners.beforeEditName && (_this$$listeners9 = _this.$listeners).beforeEditName.apply(_this$$listeners9, arguments);
           },
           beforeExpand: function beforeExpand() {
-            for (var _len10 = arguments.length, arg = new Array(_len10), _key10 = 0; _key10 < _len10; _key10++) {
-              arg[_key10] = arguments[_key10];
-            }
+            var _this$$listeners10;
 
-            _this.$emit.apply(_this, ['beforeExpand'].concat(arg));
+            return _this.$listeners.beforeExpand && (_this$$listeners10 = _this.$listeners).beforeExpand.apply(_this$$listeners10, arguments);
           },
           beforeMouseDown: function beforeMouseDown() {
-            for (var _len11 = arguments.length, arg = new Array(_len11), _key11 = 0; _key11 < _len11; _key11++) {
-              arg[_key11] = arguments[_key11];
-            }
+            var _this$$listeners11;
 
-            _this.$emit.apply(_this, ['beforeMouseDown'].concat(arg));
+            return _this.$listeners.beforeMouseDown && (_this$$listeners11 = _this.$listeners).beforeMouseDown.apply(_this$$listeners11, arguments);
           },
           beforeMouseUp: function beforeMouseUp() {
-            for (var _len12 = arguments.length, arg = new Array(_len12), _key12 = 0; _key12 < _len12; _key12++) {
-              arg[_key12] = arguments[_key12];
-            }
+            var _this$$listeners12;
 
-            _this.$emit.apply(_this, ['beforeMouseUp'].concat(arg));
+            return _this.$listeners.beforeMouseUp && (_this$$listeners12 = _this.$listeners).beforeMouseUp.apply(_this$$listeners12, arguments);
           },
           beforeRemove: function beforeRemove() {
-            for (var _len13 = arguments.length, arg = new Array(_len13), _key13 = 0; _key13 < _len13; _key13++) {
-              arg[_key13] = arguments[_key13];
-            }
+            var _this$$listeners13;
 
-            _this.$emit.apply(_this, ['beforeRemove'].concat(arg));
+            return _this.$listeners.beforeRemove && (_this$$listeners13 = _this.$listeners).beforeRemove.apply(_this$$listeners13, arguments);
           },
           beforeRename: function beforeRename() {
-            for (var _len14 = arguments.length, arg = new Array(_len14), _key14 = 0; _key14 < _len14; _key14++) {
-              arg[_key14] = arguments[_key14];
-            }
+            var _this$$listeners14;
 
-            _this.$emit.apply(_this, ['beforeRename'].concat(arg));
+            return _this.$listeners.beforeRename && (_this$$listeners14 = _this.$listeners).beforeRename.apply(_this$$listeners14, arguments);
           },
           beforeRightClick: function beforeRightClick() {
-            for (var _len15 = arguments.length, arg = new Array(_len15), _key15 = 0; _key15 < _len15; _key15++) {
-              arg[_key15] = arguments[_key15];
-            }
+            var _this$$listeners15;
 
-            _this.$emit.apply(_this, ['beforeRightClick'].concat(arg));
+            return _this.$listeners.beforeRightClick && (_this$$listeners15 = _this.$listeners).beforeRightClick.apply(_this$$listeners15, arguments);
           },
           onAsyncError: function onAsyncError() {
-            for (var _len16 = arguments.length, arg = new Array(_len16), _key16 = 0; _key16 < _len16; _key16++) {
-              arg[_key16] = arguments[_key16];
-            }
+            var _this$$listeners16;
 
-            _this.$emit.apply(_this, ['onAsyncError'].concat(arg));
+            return _this.$listeners.onAsyncError && (_this$$listeners16 = _this.$listeners).onAsyncError.apply(_this$$listeners16, arguments);
           },
           onAsyncSuccess: function onAsyncSuccess() {
-            for (var _len17 = arguments.length, arg = new Array(_len17), _key17 = 0; _key17 < _len17; _key17++) {
-              arg[_key17] = arguments[_key17];
-            }
+            var _this$$listeners17;
 
-            _this.$emit.apply(_this, ['onAsyncSuccess'].concat(arg));
+            return _this.$listeners.onAsyncSuccess && (_this$$listeners17 = _this.$listeners).onAsyncSuccess.apply(_this$$listeners17, arguments);
           },
           onCheck: function onCheck() {
-            for (var _len18 = arguments.length, arg = new Array(_len18), _key18 = 0; _key18 < _len18; _key18++) {
-              arg[_key18] = arguments[_key18];
-            }
+            var _this$$listeners18;
 
-            _this.$emit.apply(_this, ['onCheck'].concat(arg));
+            return _this.$listeners.onCheck && (_this$$listeners18 = _this.$listeners).onCheck.apply(_this$$listeners18, arguments);
           },
           onClick: function onClick() {
-            for (var _len19 = arguments.length, arg = new Array(_len19), _key19 = 0; _key19 < _len19; _key19++) {
-              arg[_key19] = arguments[_key19];
-            }
+            var _this$$listeners19;
 
-            _this.$emit.apply(_this, ['onClick'].concat(arg));
+            return _this.$listeners.onClick && (_this$$listeners19 = _this.$listeners).onClick.apply(_this$$listeners19, arguments);
           },
           onCollapse: function onCollapse() {
-            for (var _len20 = arguments.length, arg = new Array(_len20), _key20 = 0; _key20 < _len20; _key20++) {
-              arg[_key20] = arguments[_key20];
-            }
+            var _this$$listeners20;
 
-            _this.$emit.apply(_this, ['onCollapse'].concat(arg));
+            return _this.$listeners.onCollapse && (_this$$listeners20 = _this.$listeners).onCollapse.apply(_this$$listeners20, arguments);
           },
           onDblClick: function onDblClick() {
-            for (var _len21 = arguments.length, arg = new Array(_len21), _key21 = 0; _key21 < _len21; _key21++) {
-              arg[_key21] = arguments[_key21];
-            }
+            var _this$$listeners21;
 
-            _this.$emit.apply(_this, ['onDblClick'].concat(arg));
+            return _this.$listeners.onDblClick && (_this$$listeners21 = _this.$listeners).onDblClick.apply(_this$$listeners21, arguments);
           },
           onDrag: function onDrag() {
-            for (var _len22 = arguments.length, arg = new Array(_len22), _key22 = 0; _key22 < _len22; _key22++) {
-              arg[_key22] = arguments[_key22];
-            }
+            var _this$$listeners22;
 
-            _this.$emit.apply(_this, ['onDrag'].concat(arg));
+            return _this.$listeners.onDrag && (_this$$listeners22 = _this.$listeners).onDrag.apply(_this$$listeners22, arguments);
           },
           onDragMove: function onDragMove() {
-            for (var _len23 = arguments.length, arg = new Array(_len23), _key23 = 0; _key23 < _len23; _key23++) {
-              arg[_key23] = arguments[_key23];
-            }
+            var _this$$listeners23;
 
-            _this.$emit.apply(_this, ['onDragMove'].concat(arg));
+            return _this.$listeners.onDragMove && (_this$$listeners23 = _this.$listeners).onDragMove.apply(_this$$listeners23, arguments);
           },
           onDrop: function onDrop() {
-            for (var _len24 = arguments.length, arg = new Array(_len24), _key24 = 0; _key24 < _len24; _key24++) {
-              arg[_key24] = arguments[_key24];
-            }
+            var _this$$listeners24;
 
-            _this.$emit.apply(_this, ['onDrop'].concat(arg));
+            return _this.$listeners.onDrop && (_this$$listeners24 = _this.$listeners).onDrop.apply(_this$$listeners24, arguments);
           },
           onExpand: function onExpand() {
-            for (var _len25 = arguments.length, arg = new Array(_len25), _key25 = 0; _key25 < _len25; _key25++) {
-              arg[_key25] = arguments[_key25];
-            }
+            var _this$$listeners25;
 
-            _this.$emit.apply(_this, ['onExpand'].concat(arg));
+            return _this.$listeners.onExpand && (_this$$listeners25 = _this.$listeners).onExpand.apply(_this$$listeners25, arguments);
           },
           onMouseDown: function onMouseDown() {
-            for (var _len26 = arguments.length, arg = new Array(_len26), _key26 = 0; _key26 < _len26; _key26++) {
-              arg[_key26] = arguments[_key26];
-            }
+            var _this$$listeners26;
 
-            _this.$emit.apply(_this, ['onMouseDown'].concat(arg));
+            return _this.$listeners.onMouseDown && (_this$$listeners26 = _this.$listeners).onMouseDown.apply(_this$$listeners26, arguments);
           },
           onMouseUp: function onMouseUp() {
-            for (var _len27 = arguments.length, arg = new Array(_len27), _key27 = 0; _key27 < _len27; _key27++) {
-              arg[_key27] = arguments[_key27];
-            }
+            var _this$$listeners27;
 
-            _this.$emit.apply(_this, ['onMouseUp'].concat(arg));
+            return _this.$listeners.onMouseUp && (_this$$listeners27 = _this.$listeners).onMouseUp.apply(_this$$listeners27, arguments);
           },
           onRemove: function onRemove() {
-            for (var _len28 = arguments.length, arg = new Array(_len28), _key28 = 0; _key28 < _len28; _key28++) {
-              arg[_key28] = arguments[_key28];
-            }
+            var _this$$listeners28;
 
-            _this.$emit.apply(_this, ['onRemove'].concat(arg));
+            return _this.$listeners.onRemove && (_this$$listeners28 = _this.$listeners).onRemove.apply(_this$$listeners28, arguments);
           },
           onRename: function onRename() {
-            for (var _len29 = arguments.length, arg = new Array(_len29), _key29 = 0; _key29 < _len29; _key29++) {
-              arg[_key29] = arguments[_key29];
-            }
+            var _this$$listeners29;
 
-            _this.$emit.apply(_this, ['onRename'].concat(arg));
+            return _this.$listeners.onRename && (_this$$listeners29 = _this.$listeners).onRename.apply(_this$$listeners29, arguments);
           },
           onRightClick: function onRightClick() {
-            for (var _len30 = arguments.length, arg = new Array(_len30), _key30 = 0; _key30 < _len30; _key30++) {
-              arg[_key30] = arguments[_key30];
-            }
+            var _this$$listeners30;
 
-            _this.$emit.apply(_this, ['onRightClick'].concat(arg));
+            return _this.$listeners.onRightClick && (_this$$listeners30 = _this.$listeners).onRightClick.apply(_this$$listeners30, arguments);
           }
         }
       }
@@ -17258,8 +18795,8 @@ __webpack_require__("8f98");
 });
 // CONCATENATED MODULE: ./src/components/ztree.vue?vue&type=script&lang=js&
  /* harmony default export */ var components_ztreevue_type_script_lang_js_ = (ztreevue_type_script_lang_js_); 
-// EXTERNAL MODULE: ./src/components/ztree.vue?vue&type=style&index=0&id=4e249ba6&scoped=true&lang=scss&
-var ztreevue_type_style_index_0_id_4e249ba6_scoped_true_lang_scss_ = __webpack_require__("3be9");
+// EXTERNAL MODULE: ./src/components/ztree.vue?vue&type=style&index=0&id=284c42aa&scoped=true&lang=scss&
+var ztreevue_type_style_index_0_id_284c42aa_scoped_true_lang_scss_ = __webpack_require__("b6fb");
 
 // CONCATENATED MODULE: ./node_modules/vue-loader/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -17376,7 +18913,7 @@ var component = normalizeComponent(
   staticRenderFns,
   false,
   null,
-  "4e249ba6",
+  "284c42aa",
   null
   
 )

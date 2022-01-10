@@ -40,94 +40,94 @@ export default {
         },
         callback: {
           beforeAsync: (...arg) => {
-            this.$emit('beforeAsync', ...arg)
+            return this.$listeners.beforeAsync && this.$listeners.beforeAsync(...arg)
           },
           beforeCheck: (...arg) => {
-            this.$emit('beforeCheck', ...arg)
+            return this.$listeners.beforeCheck && this.$listeners.beforeCheck(...arg)
           },
           beforeClick: (...arg) => {
-            this.$emit('beforeClick', ...arg)
+            return this.$listeners.beforeClick && this.$listeners.beforeClick(...arg)
           },
           beforeCollapse: (...arg) => {
-            this.$emit('beforeCollapse', ...arg)
+            return this.$listeners.beforeCollapse && this.$listeners.beforeCollapse(...arg)
           },
           beforeDblClick: (...arg) => {
-            this.$emit('beforeDblClick', ...arg)
+            return this.$listeners.beforeDblClick && this.$listeners.beforeDblClick(...arg)
           },
           beforeDrag: (...arg) => {
-            this.$emit('beforeDrag', ...arg)
+            return this.$listeners.beforeDrag && this.$listeners.beforeDrag(...arg)
           },
           beforeDragOpen: (...arg) => {
-            this.$emit('beforeDragOpen', ...arg)
+            return this.$listeners.beforeDragOpen && this.$listeners.beforeDragOpen(...arg)
           },
           beforeDrop: (...arg) => {
-            this.$emit('beforeDrop', ...arg)
+            return this.$listeners.beforeDrop && this.$listeners.beforeDrop(...arg)
           },
           beforeEditName: (...arg) => {
-            this.$emit('beforeEditName', ...arg)
+            return this.$listeners.beforeEditName && this.$listeners.beforeEditName(...arg)
           },
           beforeExpand: (...arg) => {
-            this.$emit('beforeExpand', ...arg)
+            return this.$listeners.beforeExpand && this.$listeners.beforeExpand(...arg)
           },
           beforeMouseDown: (...arg) => {
-            this.$emit('beforeMouseDown', ...arg)
+            return this.$listeners.beforeMouseDown && this.$listeners.beforeMouseDown(...arg)
           },
           beforeMouseUp: (...arg) => {
-            this.$emit('beforeMouseUp', ...arg)
+            return this.$listeners.beforeMouseUp && this.$listeners.beforeMouseUp(...arg)
           },
           beforeRemove: (...arg) => {
-            this.$emit('beforeRemove', ...arg)
+            return this.$listeners.beforeRemove && this.$listeners.beforeRemove(...arg)
           },
           beforeRename: (...arg) => {
-            this.$emit('beforeRename', ...arg)
+            return this.$listeners.beforeRename && this.$listeners.beforeRename(...arg)
           },
           beforeRightClick: (...arg) => {
-            this.$emit('beforeRightClick', ...arg)
+            return this.$listeners.beforeRightClick && this.$listeners.beforeRightClick(...arg)
           },
           onAsyncError: (...arg) => {
-            this.$emit('onAsyncError', ...arg)
+            return this.$listeners.onAsyncError && this.$listeners.onAsyncError(...arg)
           },
           onAsyncSuccess: (...arg) => {
-            this.$emit('onAsyncSuccess', ...arg)
+            return this.$listeners.onAsyncSuccess && this.$listeners.onAsyncSuccess(...arg)
           },
           onCheck: (...arg) => {
-            this.$emit('onCheck', ...arg)
+            return this.$listeners.onCheck && this.$listeners.onCheck(...arg)
           },
           onClick: (...arg) => {
-            this.$emit('onClick', ...arg)
+            return this.$listeners.onClick && this.$listeners.onClick(...arg)
           },
           onCollapse: (...arg) => {
-            this.$emit('onCollapse', ...arg)
+            return this.$listeners.onCollapse && this.$listeners.onCollapse(...arg)
           },
           onDblClick: (...arg) => {
-            this.$emit('onDblClick', ...arg)
+            return this.$listeners.onDblClick && this.$listeners.onDblClick(...arg)
           },
           onDrag: (...arg) => {
-            this.$emit('onDrag', ...arg)
+            return this.$listeners.onDrag && this.$listeners.onDrag(...arg)
           },
           onDragMove: (...arg) => {
-            this.$emit('onDragMove', ...arg)
+            return this.$listeners.onDragMove && this.$listeners.onDragMove(...arg)
           },
           onDrop: (...arg) => {
-            this.$emit('onDrop', ...arg)
+            return this.$listeners.onDrop && this.$listeners.onDrop(...arg)
           },
           onExpand: (...arg) => {
-            this.$emit('onExpand', ...arg)
+            return this.$listeners.onExpand && this.$listeners.onExpand(...arg)
           },
           onMouseDown: (...arg) => {
-            this.$emit('onMouseDown', ...arg)
+            return this.$listeners.onMouseDown && this.$listeners.onMouseDown(...arg)
           },
           onMouseUp: (...arg) => {
-            this.$emit('onMouseUp', ...arg)
+            return this.$listeners.onMouseUp && this.$listeners.onMouseUp(...arg)
           },
           onRemove: (...arg) => {
-            this.$emit('onRemove', ...arg)
+            return this.$listeners.onRemove && this.$listeners.onRemove(...arg)
           },
           onRename: (...arg) => {
-            this.$emit('onRename', ...arg)
+            return this.$listeners.onRename && this.$listeners.onRename(...arg)
           },
           onRightClick: (...arg) => {
-            this.$emit('onRightClick', ...arg)
+            return this.$listeners.onRightClick && this.$listeners.onRightClick(...arg)
           }
         }
       }

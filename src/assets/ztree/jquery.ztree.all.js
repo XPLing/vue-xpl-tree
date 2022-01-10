@@ -23,7 +23,8 @@
         NAME: 'node_name',
         PARENT: 'node_parent',
         LEAF: 'node_leaf',
-        WRAPPER: 'wrapper'
+        WRAPPER: 'wrapper',
+        MAIN: 'main'
       },
       event: {
         NODECREATED: "ztree_nodeCreated",
@@ -1153,7 +1154,7 @@
           n = list[i];
           if (node === n || (!node && (!excludeNode || excludeNode !== n))) {
             $$(n, consts.id.A, setting).removeClass(consts.node.CURSELECTED);
-            $$(n, consts.id.WRAPPER, setting).removeClass(consts.node.CURSELECTED);
+            $$(n, '', setting).removeClass(consts.node.CURSELECTED);
             if (node) {
               data.removeSelectedNode(setting, node);
               break;
@@ -1248,7 +1249,7 @@
         }
         var ulObj = $$(node, consts.id.UL, setting),
           switchObj = $$(node, consts.id.SWITCH, setting),
-          wrapperObj = $$(node, consts.id.WRAPPER, setting),
+          liObj = $$(node, '', setting),
           icoObj = $$(node, consts.id.ICON, setting);
 
         if (isParent) {
@@ -1258,7 +1259,7 @@
           }
 
           if (node.open) {
-            view.replaceSwitchClass(node, wrapperObj, consts.folder.OPEN);
+            view.replaceSwitchClass(node, liObj, consts.folder.OPEN, consts.className.MAIN);
             view.replaceSwitchClass(node, switchObj, consts.folder.OPEN);
             view.replaceIcoClass(node, icoObj, consts.folder.OPEN);
             if (animateFlag == false || setting.view.expandSpeed == "") {
@@ -1273,7 +1274,7 @@
               }
             }
           } else {
-            view.replaceSwitchClass(node, wrapperObj, consts.folder.CLOSE);
+            view.replaceSwitchClass(node, liObj, consts.folder.CLOSE, consts.className.MAIN);
             view.replaceSwitchClass(node, switchObj, consts.folder.CLOSE);
             view.replaceIcoClass(node, icoObj, consts.folder.CLOSE);
             if (animateFlag == false || setting.view.expandSpeed == "" || !(children && children.length > 0)) {
@@ -1342,13 +1343,13 @@
         html.push("</li>");
       },
       makeDOMNodeMainBefore: function (html, setting, node, isParent) {
-        html.push("<li id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, "' tabindex='0' hidefocus='true' treenode>");
+        html.push("<li id='", node.tId, "' class='", consts.className.LEVEL, node.level, ' ', isParent ? consts.className.PARENT : consts.className.LEAF, ' ', consts.className.MAIN, '_', node.open ? consts.folder.OPEN : consts.folder.CLOSE, "' tabindex='0' hidefocus='true' treenode>");
       },
       makeDOMNodeMainWrapperAfter: function (html, setting, node) {
         html.push("</div>");
       },
       makeDOMNodeMainWrapperBefore: function (html, setting, node) {
-        html.push("<div id='", node.tId, consts.id.WRAPPER,"' class='", consts.className.LEVEL, node.level, ' ', consts.className.WRAPPER, '_', node.open ? consts.folder.OPEN : consts.folder.CLOSE, '\' treenode', consts.id.WRAPPER, ">");
+        html.push("<div id='", node.tId, consts.id.WRAPPER,"' class='", consts.className.LEVEL, node.level, '\' treenode', consts.id.WRAPPER, ">");
       },
       makeDOMNodeNameAfter: function (html, setting, node) {
         html.push("</a>");
@@ -1642,7 +1643,7 @@
         }
         obj.attr("class", tmpList.join("_"));
       },
-      replaceSwitchClass: function (node, obj, newName) {
+      replaceSwitchClass: function (node, obj, newName, className) {
         if (!obj) return;
         var tmpName = obj.attr("class");
         if (tmpName == undefined) return;
@@ -1661,7 +1662,12 @@
             tmpList[1] = newName;
             break;
         }
-        obj.attr("class", tmpList.join("_"));
+        if (className) {
+          var reg = new RegExp(className + '_[\\S]+')
+          obj.attr('class', tmpName.replace(reg, className + '_' + newName))
+        } else {
+          obj.attr('class', tmpList.join('_'))
+        }
         if (newName !== consts.folder.DOCU) {
           obj.removeAttr("disabled");
         } else {
@@ -1673,7 +1679,7 @@
           view.cancelPreSelectedNode(setting, null, node);
         }
         $$(node, consts.id.A, setting).addClass(consts.node.CURSELECTED);
-        $$(node, consts.id.WRAPPER, setting).addClass(consts.node.CURSELECTED);
+        $$(node, '', setting).addClass(consts.node.CURSELECTED);
         data.addSelectedNode(setting, node);
         setting.treeObj.trigger(consts.event.SELECTED, [setting.treeId, node]);
       },
