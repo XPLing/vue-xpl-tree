@@ -12701,7 +12701,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var core_js_modules_es6_regexp_split__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_regexp_split__WEBPACK_IMPORTED_MODULE_4__);
 /* harmony import */ var core_js_modules_es6_regexp_to_string__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__("6b54");
 /* harmony import */ var core_js_modules_es6_regexp_to_string__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_regexp_to_string__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__("53ca");
+/* harmony import */ var E_WorkProject_fleetup_git_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__("53ca");
 /* harmony import */ var core_js_modules_es6_function_name__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__("7f7f");
 /* harmony import */ var core_js_modules_es6_function_name__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(core_js_modules_es6_function_name__WEBPACK_IMPORTED_MODULE_7__);
 
@@ -12737,6 +12737,7 @@ __webpack_require__.r(__webpack_exports__);
       ICO_LOADING: 'ico_loading',
       SWITCH: 'switch',
       NAME: 'node_name',
+      NAME_WRAPPER: 'node_name_wrapper',
       PARENT: 'node_parent',
       LEAF: 'node_leaf',
       WRAPPER: 'wrapper',
@@ -12757,6 +12758,7 @@ __webpack_require__.r(__webpack_exports__);
       A: "_a",
       ICON: "_ico",
       SPAN: "_span",
+      SPAN_WRAPPER: "_span_wrapper",
       SWITCH: "_switch",
       WRAPPER: "_wrapper",
       UL: "_ul"
@@ -13718,7 +13720,7 @@ __webpack_require__.r(__webpack_exports__);
       var o = tools.isArray(obj) ? [] : {};
 
       for (var i in obj) {
-        o[i] = obj[i] instanceof Date ? new Date(obj[i].getTime()) : Object(E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(obj[i]) === "object" ? tools.clone(obj[i]) : obj[i];
+        o[i] = obj[i] instanceof Date ? new Date(obj[i].getTime()) : Object(E_WorkProject_fleetup_git_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(obj[i]) === "object" ? tools.clone(obj[i]) : obj[i];
       }
 
       return o;
@@ -13730,8 +13732,8 @@ __webpack_require__.r(__webpack_exports__);
       return Object.prototype.toString.apply(arr) === "[object Array]";
     },
     isElement: function isElement(o) {
-      return (typeof HTMLElement === "undefined" ? "undefined" : Object(E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(HTMLElement)) === "object" ? o instanceof HTMLElement : //DOM2
-      o && Object(E_WorkProject_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(o) === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string";
+      return (typeof HTMLElement === "undefined" ? "undefined" : Object(E_WorkProject_fleetup_git_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(HTMLElement)) === "object" ? o instanceof HTMLElement : //DOM2
+      o && Object(E_WorkProject_fleetup_git_vue_xpl_tree_node_modules_babel_runtime_helpers_esm_typeof__WEBPACK_IMPORTED_MODULE_6__[/* default */ "a"])(o) === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string";
     },
     $: function $(node, exp, setting) {
       if (!!exp && typeof exp != "string") {
@@ -14209,7 +14211,7 @@ __webpack_require__.r(__webpack_exports__);
     makeDOMNodeIcon: function makeDOMNodeIcon(html, setting, node) {
       var nameStr = data.nodeName(setting, node),
           name = setting.view.nameIsHTML ? nameStr : nameStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      html.push("<span id='", node.tId, consts.id.ICON, "' title='' treeNode", consts.id.ICON, " class='", view.makeNodeIcoClass(setting, node), "' style='", view.makeNodeIcoStyle(setting, node), "'></span><span id='", node.tId, consts.id.SPAN, "' class='", consts.className.NAME, "'>", name, "</span>");
+      html.push("<span id='", node.tId, consts.id.ICON, "' title='' treeNode", consts.id.ICON, " class='", view.makeNodeIcoClass(setting, node), "' style='", view.makeNodeIcoStyle(setting, node), "'></span>", "<div id='", node.tId, consts.id.SPAN_WRAPPER, "' class='", consts.className.NAME_WRAPPER, "'><span id='", node.tId, consts.id.SPAN, "' class='", consts.className.NAME, "'>", name, "</span>", "</div>");
     },
     makeDOMNodeLine: function makeDOMNodeLine(html, setting, node) {
       html.push("<span id='", node.tId, consts.id.SWITCH, "' title='' class='", view.makeNodeLineClass(setting, node), "' treeNode", consts.id.SWITCH, "></span>");
@@ -18528,7 +18530,7 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"b03974c0-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/ztree.vue?vue&type=template&id=284c42aa&scoped=true&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"84e065b0-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/ztree.vue?vue&type=template&id=284c42aa&scoped=true&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"ztree",attrs:{"id":_vm.ztreeId}})}
 var staticRenderFns = []
 

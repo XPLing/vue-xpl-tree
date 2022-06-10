@@ -21,6 +21,7 @@
         ICO_LOADING: 'ico_loading',
         SWITCH: 'switch',
         NAME: 'node_name',
+        NAME_WRAPPER: 'node_name_wrapper',
         PARENT: 'node_parent',
         LEAF: 'node_leaf',
         WRAPPER: 'wrapper',
@@ -41,6 +42,7 @@
         A: "_a",
         ICON: "_ico",
         SPAN: "_span",
+        SPAN_WRAPPER: "_span_wrapper",
         SWITCH: "_switch",
         WRAPPER: "_wrapper",
         UL: "_ul"
@@ -1332,9 +1334,9 @@
           name = setting.view.nameIsHTML ? nameStr : nameStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         html.push("<span id='", node.tId, consts.id.ICON,
           "' title='' treeNode", consts.id.ICON, " class='", view.makeNodeIcoClass(setting, node),
-          "' style='", view.makeNodeIcoStyle(setting, node), "'></span><span id='", node.tId, consts.id.SPAN,
+          "' style='", view.makeNodeIcoStyle(setting, node), "'></span>", "<div id='", node.tId, consts.id.SPAN_WRAPPER, "' class='", consts.className.NAME_WRAPPER,"'><span id='", node.tId, consts.id.SPAN,
           "' class='", consts.className.NAME,
-          "'>", name, "</span>");
+          "'>", name, "</span>", "</div>");
       },
       makeDOMNodeLine: function (html, setting, node) {
         html.push("<span id='", node.tId, consts.id.SWITCH, "' title='' class='", view.makeNodeLineClass(setting, node), "' treeNode", consts.id.SWITCH, "></span>");

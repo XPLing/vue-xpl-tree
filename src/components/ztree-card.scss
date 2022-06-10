@@ -24,10 +24,17 @@
   [treenode_wrapper] {
     position: relative;
     padding-left: 5px;
+    display: flex;
+    align-items: center;
 
     &.wrapper_open {
       background-color: #f1f1f1;
     }
+  }
+
+  [treenode_a] {
+    display: flex;
+    align-items: center;
   }
 
   [treenode_switch] {
@@ -37,5 +44,14 @@
 
   li ul {
     padding-left: 0;
+  }
+
+  .node_name_wrapper {
+    display: flex;
+    flex-direction: column;
+
+    .node_name {
+      padding: 0;
+    }
   }
 }
