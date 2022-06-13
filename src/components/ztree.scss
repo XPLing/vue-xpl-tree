@@ -1,138 +1,158 @@
- .ztree {
-    text-align:left;
-    font-size: 14px;
+.ztree {
+  text-align: left;
+  font-size: 14px;
 }
+
 .ztree ::v-deep li {
-    list-style-type: none;
-    white-space: nowrap;
-    outline: none;
+  list-style-type: none;
+  white-space: nowrap;
+  outline: none;
 }
+
 .ztree ::v-deep li ul {
-    position: relative;
-    padding: 0 0 0 20px;
-    margin: 0;
+  position: relative;
+  padding: 0 0 0 20px;
+  margin: 0;
 }
+
 .ztree ::v-deep .line:before {
-    position: absolute;
-    top: 0;
-    left: 10px;
-    height: 100%;
-    content: '';
-    border-right: 1px dotted #dbdbdb;
+  position: absolute;
+  top: 0;
+  left: 10px;
+  height: 100%;
+  content: "";
+  border-right: 1px dotted #dbdbdb;
 }
+
 .ztree ::v-deep .roots_docu:before,
 .ztree ::v-deep .roots_docu:after,
 .ztree ::v-deep .center_docu:before,
 .ztree ::v-deep .bottom_docu:before,
 .ztree ::v-deep .center_docu:after,
 .ztree ::v-deep .bottom_docu:after {
-    position: absolute;
-    content: '';
-    border: 0 dotted #dbdbdb;
+  position: absolute;
+  content: "";
+  border: 0 dotted #dbdbdb;
 }
+
 .ztree ::v-deep .roots_docu:before {
-    left: 10px;
-    height: 50%;
-    top:50%;
-    border-left-width: 1px;
+  left: 10px;
+  height: 50%;
+  top: 50%;
+  border-left-width: 1px;
 }
+
 .ztree ::v-deep .roots_docu:after {
-    top: 50%;
-    left: 11px;
-    width: 50%;
-    border-top-width: 1px;
+  top: 50%;
+  left: 11px;
+  width: 50%;
+  border-top-width: 1px;
 }
+
 .ztree ::v-deep .center_docu:before {
-    left: 10px;
-    height: 100%;
-    border-left-width: 1px;
+  left: 10px;
+  height: 100%;
+  border-left-width: 1px;
 }
+
 .ztree ::v-deep .center_docu:after {
-    top: 50%;
-    left: 11px;
-    width: 50%;
-    border-top-width: 1px;
+  top: 50%;
+  left: 11px;
+  width: 50%;
+  border-top-width: 1px;
 }
+
 .ztree ::v-deep .bottom_docu:before {
-    left: 10px;
-    height: 50%;
-    border-left-width: 1px;
+  left: 10px;
+  height: 50%;
+  border-left-width: 1px;
 }
+
 .ztree ::v-deep .bottom_docu:after {
-    top: 50%;
-    left: 11px;
-    width: 50%;
-    border-top-width: 1px;
+  top: 50%;
+  left: 11px;
+  width: 50%;
+  border-top-width: 1px;
 }
+
 .ztree ::v-deep li a {
-    display: inline-block;
-    line-height: 22px;
-    height: 22px;
-    margin: 0;
-    cursor: pointer;
-    transition: none;
-    vertical-align: middle;
-    color: #555555;
+  display: inline-block;
+  line-height: 22px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+  transition: none;
+  vertical-align: middle;
+  color: #555555;
 }
-.ztree ::v-deep .node_name{
-    display: inline-block;
-    padding: 0 3px;
-    border-radius: 4px;
+
+.ztree ::v-deep .node_name {
+  display: inline-block;
+  padding: 0 3px;
+  border-radius: 4px;
 }
-.ztree ::v-deep [treenode_a].curSelectedNode .node_name{
-    color: #000;
-    background-color: #c9e9f7;
+
+.ztree ::v-deep [treenode_a].curSelectedNode .node_name {
+  color: #000;
+  background-color: #c9e9f7;
 }
+
 .ztree ::v-deep .curSelectedNode_Edit {
-    height: 20px;
-    opacity: 0.8;
-    color: #000;
-    border: 1px #6cc2e8 solid;
-    background-color: #9dd6f0;
+  height: 20px;
+  opacity: 0.8;
+  color: #000;
+  border: 1px #6cc2e8 solid;
+  background-color: #9dd6f0;
 }
+
 .ztree ::v-deep .tmpTargetNode_inner {
-    opacity: 0.8;
-    color: #fff;
-    background-color: #4fcbf0;
-    filter: alpha(opacity=80);
+  opacity: 0.8;
+  color: #fff;
+  background-color: #4fcbf0;
+  filter: alpha(opacity=80);
 }
+
 .ztree ::v-deep .rename {
-    font-size: 12px;
-    line-height: 22px;
-    width: 80px;
-    height: 22px;
-    margin: 0;
-    padding: 0;
-    vertical-align: top;
-    border: 0;
-    background: none;
+  font-size: 12px;
+  line-height: 22px;
+  width: 80px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  vertical-align: top;
+  border: 0;
+  background: none;
 }
+
 .ztree ::v-deep .button {
-    position: relative;
-    display: inline-block;
-    line-height: 22px;
-    height: 22px;
-    width: 22px;
-    cursor: pointer;
-    text-align: center;
-    vertical-align: middle;
+  position: relative;
+  display: inline-block;
+  line-height: 22px;
+  height: 22px;
+  width: 22px;
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .ztree ::v-deep .button.edit {
-    color: #25ae88;
+  color: #25ae88;
 }
+
 .ztree ::v-deep .button.remove {
-    color: #CB4042;
+  color: #CB4042;
 }
+
 .ztree ::v-deep .button.chk {
-    position: relative;
-    width: 14px;
-    height: 14px;
-    margin: 0 4px 0 0;
-    border: 1px solid #d7dde4;
-    border-radius: 2px;
-    background: #fff;
+  position: relative;
+  width: 14px;
+  height: 14px;
+  margin: 0 4px 0 0;
+  border: 1px solid #d7dde4;
+  border-radius: 2px;
+  background: #fff;
 }
+
 .ztree ::v-deep .chk.radio_true_full,
 .ztree ::v-deep .chk.radio_false_full,
 .ztree ::v-deep .chk.radio_true_full_focus,
@@ -143,78 +163,88 @@
 .ztree ::v-deep .chk.radio_false_part,
 .ztree ::v-deep .chk.radio_true_part_focus,
 .ztree ::v-deep .chk.radio_false_part_focus {
-    border-radius: 8px;
+  border-radius: 8px;
 }
+
 .ztree ::v-deep .button.chk:after {
-    position: absolute;
-    top: 1px;
-    left: 4px;
-    width: 4px;
-    height: 8px;
-    content: '';
-    transition: -webkit-transform 0.2s ease-in-out;
-    transition: transform 0.2s ease-in-out;
-    transition: transform 0.2s ease-in-out, -webkit-transform 0.2s ease-in-out;
-    -webkit-transform: rotate(0deg) scale(0);
-    transform: rotate(0deg) scale(0);
-    border-right: 2px solid #fff;
-    border-bottom: 2px solid #fff;
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 4px;
+  height: 8px;
+  content: "";
+  transition: -webkit-transform 0.2s ease-in-out;
+  transition: transform 0.2s ease-in-out;
+  transition: transform 0.2s ease-in-out, -webkit-transform 0.2s ease-in-out;
+  -webkit-transform: rotate(0deg) scale(0);
+  transform: rotate(0deg) scale(0);
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
 }
+
 .ztree ::v-deep .button.checkbox_false_full_focus {
-    border-color: #ccc;
+  border-color: #ccc;
 }
+
 .ztree ::v-deep .button.checkbox_true_full,
 .ztree ::v-deep .button.checkbox_true_full_focus,
 .ztree ::v-deep .button.checkbox_true_part,
 .ztree ::v-deep .button.checkbox_true_part_focus,
 .ztree ::v-deep .button.checkbox_true_disable {
-    border-color: #39f;
-    background-color: #39f;
+  border-color: #39f;
+  background-color: #39f;
 }
+
 .ztree ::v-deep .button.checkbox_true_full:after,
 .ztree ::v-deep .button.checkbox_true_full_focus:after,
 .ztree ::v-deep .button.checkbox_true_disable:after {
-    -webkit-transform: rotate(45deg) scale(1);
-    transform: rotate(45deg) scale(1);
+  -webkit-transform: rotate(45deg) scale(1);
+  transform: rotate(45deg) scale(1);
 }
+
 .ztree ::v-deep .button.checkbox_true_part:after,
 .ztree ::v-deep .button.checkbox_true_part_focus:after {
-    top: 5px;
-    left: 2px;
-    width: 10px;
-    height: 1px;
-    -webkit-transform: rotate(0deg) scale(1);
-    transform: rotate(0deg) scale(1);
-    border-right: 0;
+  top: 5px;
+  left: 2px;
+  width: 10px;
+  height: 1px;
+  -webkit-transform: rotate(0deg) scale(1);
+  transform: rotate(0deg) scale(1);
+  border-right: 0;
 }
+
 .ztree ::v-deep .button.radio_true_full,
 .ztree ::v-deep .chk.radio_true_full_focus,
 .ztree ::v-deep .chk.radio_true_part,
 .ztree ::v-deep .chk.radio_true_part_focus {
-    border-color: #39f;
+  border-color: #39f;
 }
+
 .ztree ::v-deep .button.radio_true_full:after,
 .ztree ::v-deep .chk.radio_true_full_focus:after,
 .ztree ::v-deep .chk.radio_true_part:after,
 .ztree ::v-deep .chk.radio_true_part_focus:after {
-    top: 3px;
-    left: 3px;
-    width: 8px;
-    -webkit-transform: rotate(0deg) scale(1);
-    transform: rotate(0deg) scale(1);
-    border: 0;
-    border-radius: 4px;
-    background: #39f;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  -webkit-transform: rotate(0deg) scale(1);
+  transform: rotate(0deg) scale(1);
+  border: 0;
+  border-radius: 4px;
+  background: #39f;
 }
+
 .ztree ::v-deep .button.checkbox_true_disable,
 .ztree ::v-deep .button.checkbox_false_disable,
 .ztree ::v-deep .chk.radio_false_disable,
 .ztree ::v-deep .chk.radio_true_disable {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
+
 .ztree ::v-deep .button.checkbox_false_disable {
-    background-color: #f3f3f3;
+  background-color: #f3f3f3;
 }
+
 .ztree ::v-deep .button.noline_close:before,
 .ztree ::v-deep .button.noline_open:before,
 .ztree ::v-deep .button.root_open:before,
@@ -225,59 +255,81 @@
 .ztree ::v-deep .button.bottom_close:before,
 .ztree ::v-deep .button.center_open:before,
 .ztree ::v-deep .button.center_close:before {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    content: '';
-    transition: -webkit-transform ease 0.3s;
-    transition: transform ease 0.3s;
-    transition: transform ease 0.3s, -webkit-transform ease 0.3s;
-    -webkit-transform: rotateZ(0deg);
-    transform: rotateZ(0deg);
-    -webkit-transform-origin: 25% 50%;
-    transform-origin: 25% 50%;
-    border: 6px solid;
-    border-color: transparent transparent transparent #666;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  content: "";
+  transition: -webkit-transform ease 0.3s;
+  transition: transform ease 0.3s;
+  transition: transform ease 0.3s, -webkit-transform ease 0.3s;
+  -webkit-transform: rotateZ(0deg);
+  transform: rotateZ(0deg);
+  -webkit-transform-origin: 25% 50%;
+  transform-origin: 25% 50%;
+  border: 6px solid;
+  border-color: transparent transparent transparent #666;
 }
+
 .ztree ::v-deep .button.noline_open:before,
 .ztree ::v-deep .button.root_open:before,
 .ztree ::v-deep .button.roots_open:before,
 .ztree ::v-deep .button.bottom_open:before,
 .ztree ::v-deep .button.center_open:before {
-    -webkit-transform: rotateZ(90deg);
-    transform: rotateZ(90deg);
+  -webkit-transform: rotateZ(90deg);
+  transform: rotateZ(90deg);
 }
+
 .ztree ::v-deep .button.ico_loading {
-    margin-right: 2px;
-    background: url('data:image/gif;base64,R0lGODlhEAAQAKIGAMLY8YSx5HOm4Mjc88/g9Ofw+v///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgAGACwAAAAAEAAQAAADMGi6RbUwGjKIXCAA016PgRBElAVlG/RdLOO0X9nK61W39qvqiwz5Ls/rRqrggsdkAgAh+QQFCgAGACwCAAAABwAFAAADD2hqELAmiFBIYY4MAutdCQAh+QQFCgAGACwGAAAABwAFAAADD1hU1kaDOKMYCGAGEeYFCQAh+QQFCgAGACwKAAIABQAHAAADEFhUZjSkKdZqBQG0IELDQAIAIfkEBQoABgAsCgAGAAUABwAAAxBoVlRKgyjmlAIBqCDCzUoCACH5BAUKAAYALAYACgAHAAUAAAMPaGpFtYYMAgJgLogA610JACH5BAUKAAYALAIACgAHAAUAAAMPCAHWFiI4o1ghZZJB5i0JACH5BAUKAAYALAAABgAFAAcAAAMQCAFmIaEp1motpDQySMNFAgA7') 0 center no-repeat;
+  margin-right: 2px;
+  background: url("data:image/gif;base64,R0lGODlhEAAQAKIGAMLY8YSx5HOm4Mjc88/g9Ofw+v///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgAGACwAAAAAEAAQAAADMGi6RbUwGjKIXCAA016PgRBElAVlG/RdLOO0X9nK61W39qvqiwz5Ls/rRqrggsdkAgAh+QQFCgAGACwCAAAABwAFAAADD2hqELAmiFBIYY4MAutdCQAh+QQFCgAGACwGAAAABwAFAAADD1hU1kaDOKMYCGAGEeYFCQAh+QQFCgAGACwKAAIABQAHAAADEFhUZjSkKdZqBQG0IELDQAIAIfkEBQoABgAsCgAGAAUABwAAAxBoVlRKgyjmlAIBqCDCzUoCACH5BAUKAAYALAYACgAHAAUAAAMPaGpFtYYMAgJgLogA610JACH5BAUKAAYALAIACgAHAAUAAAMPCAHWFiI4o1ghZZJB5i0JACH5BAUKAAYALAAABgAFAAcAAAMQCAFmIaEp1motpDQySMNFAgA7") 0 center no-repeat;
 }
+
 .ztree ::v-deep .tmpTargetzTree {
-    opacity: 0.8;
-    background-color: #2EA9DF;
-    filter: alpha(opacity=80);
+  opacity: 0.8;
+  background-color: #2EA9DF;
+  filter: alpha(opacity=80);
 }
+
 .ztree ::v-deep .tmpzTreeMove_arrow {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    color: #4fcbf0;
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  color: #4fcbf0;
 }
+
 .ztree ::v-deep .ztree.zTreeDragUL {
-    overflow: hidden;
-    position: absolute;
-    width: auto;
-    height: auto;
-    margin: 0;
-    padding: 0;
-    opacity: 0.8;
-    border: 1px #176b53 dotted;
-    background-color: #dbdbdb;
-    filter: alpha(opacity=80);
+  overflow: hidden;
+  position: absolute;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  opacity: 0.8;
+  border: 1px #176b53 dotted;
+  background-color: #dbdbdb;
+  filter: alpha(opacity=80);
 }
+
 .zTreeMask {
-    position: absolute;
-    z-index: 10000;
-    opacity: 0.0;
-    background-color: #cfcfcf;
-    filter: alpha(opacity=0);
+  position: absolute;
+  z-index: 10000;
+  opacity: 0.0;
+  background-color: #cfcfcf;
+  filter: alpha(opacity=0);
+}
+
+.ztree ::v-deep {
+  [treenode_a], [treenode_wrapper] {
+    display: flex;
+    align-items: center;
+  }
+
+  .node_name_wrapper {
+    display: flex;
+    flex-direction: column;
+
+    .node_name {
+      padding: 0;
+    }
+  }
 }
