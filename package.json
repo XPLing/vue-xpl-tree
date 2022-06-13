@@ -1,6 +1,6 @@
 {
   "name": "vue-xpl-tree",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Encapsulation ztree for vue",
   "main": "./dist/vue-xpl-tree.common.js",
   "scripts": {
