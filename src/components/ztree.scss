@@ -133,6 +133,7 @@
   cursor: pointer;
   text-align: center;
   vertical-align: middle;
+  flex: 0 0 22px;
 }
 
 .ztree ::v-deep .button.edit {
@@ -151,6 +152,7 @@
   border: 1px solid #d7dde4;
   border-radius: 2px;
   background: #fff;
+  flex: 0 0 14px;
 }
 
 .ztree ::v-deep .chk.radio_true_full,
